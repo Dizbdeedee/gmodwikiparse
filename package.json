@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@types/node": "^18.8.3",
+    "cheerio": "^1.0.0-rc.12",
+    "sqlite3": "^5.1.2",
+    "warcio": "^1.5.1"
+  },
+  "devDependencies": {
+    "dts2hx": "^0.19.2"
+  }
+}
