@@ -16,6 +16,10 @@ extern class WARCResult {
 	function readFully():js.lib.Promise<Null<Dynamic>>;
 
 	var warcTargetURI:String;
+
+	var payload:js.lib.Uint8Array;
+
+	var warcType:String;
 }
 
 
@@ -64,7 +68,7 @@ class Main {
 	public static function main() {
 		var driver = new tink.sql.drivers.Sqlite(s -> "wikidb");
 		var db = new WikiDB("wiki_db",driver);
-		var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc"));
+		var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc.gz"));
 		var parse = new ContentParser();
 		parseWorker(warc,parse).handle((outcome) -> {
 			switch (outcome) {

@@ -1,9 +1,8 @@
---library hxnodejs
-
 -cp lib
 -cp src
---library tink_sql
 -main Main
+--library tink_sql
+--library hxnodejs
 -dce full
 --js gmodwiki.js
 

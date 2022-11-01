@@ -1,0 +1,6 @@
+::beginHeader::
+
+::comment::
+static function ::funcName::(::varList::)::typeOutput::;
+
+::endHeader::

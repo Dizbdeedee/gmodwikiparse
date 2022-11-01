@@ -3,7 +3,8 @@ import tink.sql.Types;
 @:transitive
 enum abstract DescLinkType(SmallInt) from SmallInt to SmallInt {
 	var DESCRIPTION;
-	var DESCRIPTION_NEWLINE;
+	var DESCRIPTION_BREAK_ABOVE;
+	var DESCRIPTION_BREAK_BELOW;
 	var LINK_TEXT;
 	var LINK_URL;
 	var BEGIN_NOTE;
@@ -16,94 +17,136 @@ enum abstract DescLinkType(SmallInt) from SmallInt to SmallInt {
 	var END_BUG;
 	var BEGIN_DEPRECATED;
 	var END_DEPRECATED;
+	var BEGIN_LUA_CODE;
 	var LUA_CODE;
+	var END_LUA_CODE;
+	var BEGIN_JAVASCRIPT;
+	var END_JAVASCRIPT;
+	var BEGIN_LIST;
+	var LIST_ITEM;
+	var END_LIST;
+	var HEADING;
+	var TITLE;
+	var BEGIN_VALIDATE;
+	var END_VALIDATE;
+	var BEGIN_CODE; //highlight
+	var END_CODE;
+	var BEGIN_STRONG;
+	var END_STRONG;
+	var BEGIN_KEY;
+	var END_KEY;
+	var BEGIN_REMOVED;
+	var END_REMOVED;
 }
 
 typedef DescLink = {
-	var id:Id<DescLink>;
-	var textValue:MediumText;
+	@:primary @:autoIncrement var id:Id<DescLink>;
+	var ?textValue:MediumText;
 	var type:DescLinkType;
-	var nextDesc:Null<Id<DescLink>>;
+	var ?nextDesc:Id<DescLink>;
 }
 
 typedef Function =  {
-	var id:Id<Function>;
+	@:primary @:autoIncrement var id:Id<Function>;
 	var name:VarChar<255>;
 	var url:VarChar<1024>;
-	var description:Id<DescLink>;
+	var ?description:Id<DescLink>;
 	var isHook:Bool;
 	var stateClient:Bool;
 	var stateMenu:Bool;
 	var stateServer:Bool;
 }
 
-typedef GEnum = {
-	var id:Id<GEnum>;
+typedef Struct = {
+	@:primary @:autoIncrement var id:Id<Struct>;
 	var name:VarChar<255>;
 	var url:VarChar<1024>;
-	var description:Id<DescLink>;
+	var ?description:Id<DescLink>;
 }
 
-typedef Struct = {
-	var id:Id<Struct>;
+typedef StructMember = {
+	// I think this matters. For some reason.
+	@:primary var structOrder:SmallInt;
+	@:primary var structID:Id<Struct>;
 	var name:VarChar<255>;
-	var url:VarChar<1024>;
-	var description:Id<DescLink>;
+	var type:VarChar<255>;
+	var typeURL:VarChar<255>;
+	var ?def:VarChar<255>;
 }
 
 typedef GClass = { 
-	var id:Id<GClass>;
+	@:primary @:autoIncrement var id:Id<GClass>;
 	var name:VarChar<255>;
 	var url:VarChar<1024>;
-	var description:Id<DescLink>;
+	var ?description:Id<DescLink>;
 }
 
 typedef Library = {
-	var id:Id<Library>;
+	@:primary @:autoIncrement var id:Id<Library>;
 	var name:VarChar<255>;
 	var url:VarChar<1024>;
-	var description:Id<DescLink>;
+	var ?description:Id<DescLink>;
 }
 
-typedef FieldPage = {
-	var id:Id<FieldPage>;
-	var name:VarChar<255>;
-	var url:VarChar<1024>;
-	var description:Id<DescLink>;
-	var type:VarChar<255>;
-}
+// typedef FieldPage = {
+// 	@:primary var id:Id<FieldPage>;
+// 	var name:VarChar<255>;
+// 	var url:VarChar<1024>;
+// 	var description:Id<DescLink>;
+// 	var type:VarChar<255>;
+// 	var typeURL:VarChar<255>;
+// }
 
-typedef FieldInline = {
-	var id:Id<FieldInline>;
-	var name:VarChar<255>;
-	var description:Id<DescLink>;
-	var type:VarChar<255>;
-	var def:VarChar<255>;
-}
+// typedef FieldInline = {
+// 	@:primary var id:Id<FieldInline>;
+// 	var name:VarChar<255>;
+// 	var description:Id<DescLink>;
+// 	var type:VarChar<255>;
+// 	var typeURL:VarChar<255>;
+// 	var def:VarChar<255>;
+// }
 
 typedef FunctionArg = {
-	var id:Id<FunctionArg>;
-	var funcid:Id<Function>;
+	@:primary var argumentNo:SmallInt;
+	@:primary var funcid:Id<Function>;
 	var name:VarChar<255>;
 	var type:VarChar<255>;
-	var def:VarChar<255>;
-	var description:Id<DescLink>;
+	var typeURL:VarChar<255>;
+	var ?def:VarChar<255>;
+	var ?description:Id<DescLink>;
 }
 
 typedef FunctionRet = {
-	var id:Id<FunctionRet>;
-	var funcid:Id<Function>;
+	@:primary var returnNo:SmallInt;
+	@:primary var funcid:Id<Function>;
 	var type:VarChar<255>;
-	var desc:Id<DescLink>;
+	var typeURL:VarChar<255>;
+	var ?desc:Id<DescLink>;
 }
 
 typedef LuaExample = {
-	var id:Id<LuaExample>;
-	var funcid:Id<Function>;
-	var desc:Id<DescLink>;
-	var example:MediumText;
-	var output:Null<MediumText>;
+	@:primary var exampleNo:SmallInt;
+	@:primary var funcid:Id<Function>;
+	var ?desc:Id<DescLink>;
+	var ?output:Id<DescLink>;
+	var code:Id<DescLink>;
 }
+
+typedef GEnum = {
+	@:primary var id:Id<GEnum>;
+	var ?desc:Id<DescLink>;
+	var url:VarChar<1024>;
+}
+
+typedef GEnumMembers = {
+	@:primary var memberNo:SmallInt;
+	@:primary var enumID:Id<GEnum>;
+	var enumName:VarChar<255>;
+	var ?desc:Id<DescLink>;
+	var ?value:VarChar<255>;
+}
+
+
 
 @:tables(DescLink,Function,FunctionArg,FunctionRet)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
