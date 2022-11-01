@@ -17,7 +17,7 @@ class ContentParser {
 
 	public static var jq:CheerioAPI;
 
-	final descParser = DescriptionParser2.makeDescParser2();
+	final descParser = DescriptionParser.makeDescParser2();
 
 	public function new () {}
 
@@ -35,7 +35,6 @@ class ContentParser {
 
 	function loadHTML(parsedWarc:WARCResult) {
 		jq = Cheerio.load(cast node.buffer.Buffer.from(parsedWarc.payload));
-		// trace(parsedWarc.warcTargetURI);
 		var isFunc = jq.call("div.function").length > 0;
 		var isEnum = jq.call("div.enum").length > 0;
 		var isStruct = jq.call("div.struct").length > 0;

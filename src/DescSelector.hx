@@ -36,7 +36,7 @@ class PSelector extends DescSelector {
 	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
 		return ([
             [{id : null, textValue : null,type : DESCRIPTION_BREAK_ABOVE, nextDesc : null}],
-            DescriptionParser2.makeDescParser2().parseDescNode(elem),
+            DescriptionParser.makeDescParser2().parseDescNode(elem),
             [{id : null, textValue : null,type : DESCRIPTION_BREAK_BELOW, nextDesc : null}]
         ] : Array<Array<DescLink>>).flatten();
         // return if (elem.contents().length > 0) {
@@ -46,7 +46,7 @@ class PSelector extends DescSelector {
         //         textValue : null,
         //         type : DESCRIPTION_BREAK_ABOVE,
         //         nextDesc: null
-        //     }],DescriptionParser2.makeDescParser2().parseDescNode(elem)] 
+        //     }],DescriptionParser.makeDescParser2().parseDescNode(elem)] 
         //     : Array<Array<DescLink>> ).flatten();
         // } else {
         //     [{
@@ -74,7 +74,7 @@ class NoteSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -102,7 +102,7 @@ class WarnSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -130,7 +130,7 @@ class BugSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -158,7 +158,7 @@ class DeprecatedSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -186,7 +186,7 @@ class RemovedSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -213,7 +213,7 @@ class InternalSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -240,7 +240,7 @@ class ListSelector extends DescSelector {
 					nextDesc: null
 				}
 			],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem),
+			DescriptionParser.makeDescParser2().parseDescNode(elem),
 			[
 				{
 					id: null,
@@ -281,7 +281,7 @@ class LuaCodeSelector extends DescSelector {
 			type : BEGIN_LUA_CODE,
 			nextDesc : null,
 		}],
-		DescriptionParser2.makeDescParser2().parseDescNode(elem),
+		DescriptionParser.makeDescParser2().parseDescNode(elem),
 		[{
 			id : null,
 			textValue : null,
@@ -315,7 +315,7 @@ class ValidateSelector extends DescSelector {
 				type : BEGIN_VALIDATE,
 				nextDesc : null
 			}],
-			DescriptionParser2.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[{
 				id : null,
 				textValue : null,
@@ -537,7 +537,7 @@ class CodeFeatureSelector extends DescSelector {
 
 	//we don't care about these span elements currently. at least for my use case, markdown will handle the difficult stuff
 	override function parse(elem:Cheerio<Dynamic>) {
-		return DescriptionParser2.makeDescParser2().parseDescNode(elem);
+		return DescriptionParser.makeDescParser2().parseDescNode(elem);
 	}
 }
 
