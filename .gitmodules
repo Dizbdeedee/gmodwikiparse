@@ -31,3 +31,6 @@
 [submodule "haxe_modules/tink_priority"]
 	path = haxe_modules/tink_priority
 	url = https://github.com/haxetink/tink_priority
+[submodule "haxe_modules/gmodwikiparse-externs-dts2hx"]
+	path = haxe_modules/gmodwikiparse-externs-dts2hx
+	url = https://github.com/Dizbdeedee/gmodwikiparse-externs-dts2hx
