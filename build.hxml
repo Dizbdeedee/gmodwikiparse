@@ -1,9 +1,9 @@
--cp lib
 -cp src
 -main Main
 --library tink_sql
 --library hxnodejs
 --library tink_await
+--library gmodwikiparse-externs-dts2hx
 -dce full
 --js gmodwiki.js
 

@@ -112,6 +112,7 @@ class ContentParser {
 			default:
 				null;
 		}
+		trace(descID);
 		var funcArgsNode = getOptCheer(jq,".function_arguments");
 		switch (funcArgsNode) {
 			case Some(funcArgsNode):
