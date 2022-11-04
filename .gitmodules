@@ -1,0 +1,33 @@
+[submodule "haxe_modules/tink_await"]
+	path = haxe_modules/tink_await
+	url = https://github.com/haxetink/tink_await
+[submodule "haxe_modules/tink_sql"]
+	path = haxe_modules/tink_sql
+	url = https://github.com/haxetink/tink_sql
+[submodule "haxe_modules/tink_macro"]
+	path = haxe_modules/tink_macro
+	url = https://github.com/haxetink/tink_macro
+[submodule "haxe_modules/tink_core"]
+	path = haxe_modules/tink_core
+	url = https://github.com/haxetink/tink_core
+[submodule "haxe_modules/tink_spatial"]
+	path = haxe_modules/tink_spatial
+	url = https://github.com/haxetink/tink_spatial
+[submodule "haxe_modules/tink_streams"]
+	path = haxe_modules/tink_streams
+	url = https://github.com/haxetink/tink_streams
+[submodule "haxe_modules/tink_url"]
+	path = haxe_modules/tink_url
+	url = https://github.com/haxetink/tink_url
+[submodule "haxe_modules/tink_stringly"]
+	path = haxe_modules/tink_stringly
+	url = https://github.com/haxetink/tink_stringly
+[submodule "haxe_modules/hxnodejs"]
+	path = haxe_modules/hxnodejs
+	url = https://github.com/HaxeFoundation/hxnodejs
+[submodule "haxe_modules/tink_syntaxhub"]
+	path = haxe_modules/tink_syntaxhub
+	url = https://github.com/haxetink/tink_syntaxhub
+[submodule "haxe_modules/tink_priority"]
+	path = haxe_modules/tink_priority
+	url = https://github.com/haxetink/tink_priority

@@ -64,12 +64,39 @@ class Main {
 			};
 		});
 	}
+	//@:tables(DescItem,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers)
+	static function createDBs(db:WikiDB):Promise<Noise> {
+		var databasePromises = [
+			db.DescItem.create(true),
+			db.DescriptionStorage.create(true),
+			db.Function.create(true),
+			db.FunctionArg.create(true),
+			db.FunctionRet.create(true),
+			db.LuaExample.create(true),
+			db.Struct.create(true),
+			db.GClass.create(true),
+			db.Library.create(true),
+			db.GEnum.create(true),
+			db.GEnumMembers.create(true)
+		];
+		return Promise.inParallel(databasePromises);
+	}
 
 	public static function main() {
 		var driver = new tink.sql.drivers.Sqlite(s -> "wikidb");
 		var db = new WikiDB("wiki_db",driver);
+		createDBs(db).handle((out) -> {
+			trace(out);
+		});
+		// db.DescItem.create(true).next(_ -> 
+		// 	db.Function.create(true).next(_ -> 
+		// 		db.FunctionArg.create(true).next
+		// 	)
+		// ).handle((out) -> {
+		// 	trace(out);
+		// });
 		var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc.gz"));
-		var parse = new ContentParser();
+		var parse = new ContentParser(db);
 		parseWorker(warc,parse).handle((outcome) -> {
 			switch (outcome) {
 				case Success(_):

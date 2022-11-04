@@ -4,11 +4,11 @@ import js.Syntax;
 using Lambda;
 import cheerio.lib.cheerio.Cheerio;
 import DescSelector;
-import WikiDB.DescLink;
+import WikiDB.DescItem;
 using js.lib.HaxeIterator;
 typedef ParseResult = {
     traverseElements : Int,
-    generatedDescs : Array<DescLink>
+    generatedDescs : Array<DescItem>
 }
 
 class DescriptionParser {
@@ -79,9 +79,9 @@ class DescriptionParser {
         }
     }
 
-    public function parseDescNode(descNode:Cheerio<Dynamic>):Array<DescLink> {
+    public function parseDescNode(descNode:Cheerio<Dynamic>):Array<DescItem> {
         var curNode:Cheerio<Dynamic> = descNode.contents();
-        var allDescriptions:Array<DescLink> = [];
+        var allDescriptions:Array<DescItem> = [];
         var skipElements = 1;
         curNode.each(function (_,el) {
             if (skipElements > 1) {
@@ -96,4 +96,6 @@ class DescriptionParser {
         });
         return allDescriptions;
     }
+
+    
 }

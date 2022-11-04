@@ -2,20 +2,19 @@ import cheerio.lib.cheerio.Cheerio;
 
 using Lambda;
 
-import WikiDB.DescLink;
+import WikiDB.DescItem;
 
 abstract class DescSelector {
 	public function new() {};
 
 	public abstract function testElement(elem:Cheerio<Dynamic>):Bool;
 
-	public function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	public function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [
 			{
-				id: 999,
+				id: null,
 				textValue: "placeholder",
-				type: 999,
-				nextDesc: 999
+				type: 999
 			}
 		];
 	};
@@ -33,29 +32,12 @@ class PSelector extends DescSelector {
 		return elem.is("p");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
-            [{id : null, textValue : null,type : DESCRIPTION_BREAK_ABOVE, nextDesc : null}],
+            [{id : null, textValue : null,type : DESCRIPTION_BREAK_ABOVE, }],
             DescriptionParser.makeDescParser2().parseDescNode(elem),
-            [{id : null, textValue : null,type : DESCRIPTION_BREAK_BELOW, nextDesc : null}]
-        ] : Array<Array<DescLink>>).flatten();
-        // return if (elem.contents().length > 0) {
-        //     ([
-        //         [{
-        //         id : null,
-        //         textValue : null,
-        //         type : DESCRIPTION_BREAK_ABOVE,
-        //         nextDesc: null
-        //     }],DescriptionParser.makeDescParser2().parseDescNode(elem)] 
-        //     : Array<Array<DescLink>> ).flatten();
-        // } else {
-        //     [{
-		// 		id: null,
-		// 		textValue: elem.text(),
-		// 		type: DESCRIPTION_BREAK,
-		// 		nextDesc: null
-		// 	}];
-        // }
+            [{id : null, textValue : null,type : DESCRIPTION_BREAK_BELOW, }]
+        ] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -64,14 +46,13 @@ class NoteSelector extends DescSelector {
 		return elem.is(".note");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_NOTE,
-					nextDesc: null
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
@@ -80,10 +61,9 @@ class NoteSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_NOTE,
-					nextDesc: null
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -92,14 +72,14 @@ class WarnSelector extends DescSelector {
 		return elem.is(".warning");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_WARNING,
-					nextDesc: null
+					
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
@@ -108,10 +88,10 @@ class WarnSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_WARNING,
-					nextDesc: null
+					
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -120,14 +100,14 @@ class BugSelector extends DescSelector {
 		return elem.is(".bug");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_BUG,
-					nextDesc: null
+					
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
@@ -136,10 +116,10 @@ class BugSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_BUG,
-					nextDesc: null
+					
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -148,14 +128,14 @@ class DeprecatedSelector extends DescSelector {
 		return elem.is(".deprecated");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_DEPRECATED,
-					nextDesc: null
+					
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
@@ -164,10 +144,10 @@ class DeprecatedSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_DEPRECATED,
-					nextDesc: null
+					
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -176,14 +156,14 @@ class RemovedSelector extends DescSelector {
 		return elem.is(".removed");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_REMOVED,
-					nextDesc: null
+					
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
@@ -192,10 +172,10 @@ class RemovedSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_REMOVED,
-					nextDesc: null
+					
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -203,14 +183,14 @@ class InternalSelector extends DescSelector {
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".internal");
 	}
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_INTERNAL,
-					nextDesc: null
+					
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
@@ -219,10 +199,10 @@ class InternalSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_INTERNAL,
-					nextDesc: null
+					
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -230,14 +210,14 @@ class ListSelector extends DescSelector {
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is("ul");
 	}
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
 				{
 					id: null,
 					textValue: null,
 					type: BEGIN_LIST,
-					nextDesc: null
+					
 				}
 			],
 			DescriptionParser.makeDescParser2().parseDescNode(elem),
@@ -246,10 +226,10 @@ class ListSelector extends DescSelector {
 					id: null,
 					textValue: null,
 					type: END_LIST,
-					nextDesc: null
+					
 				}
 			]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -257,12 +237,12 @@ class ListItemSelector extends DescSelector {
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is("li");
 	}
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [{
 			id : null,
 			textValue: elem.text(),
 			type : LIST_ITEM,
-			nextDesc : null
+			
 		}];
 	}
 }
@@ -278,17 +258,16 @@ class LuaCodeSelector extends DescSelector {
 		[{
 			id : null,
 			textValue : null,
-			type : BEGIN_LUA_CODE,
-			nextDesc : null,
+			type : BEGIN_LUA_CODE
 		}],
 		DescriptionParser.makeDescParser2().parseDescNode(elem),
 		[{
 			id : null,
 			textValue : null,
-			type : END_LUA_CODE,
-			nextDesc : null
+			type : END_LUA_CODE
+			
 		}]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -313,16 +292,16 @@ class ValidateSelector extends DescSelector {
 				id : null,
 				textValue : null,
 				type : BEGIN_VALIDATE,
-				nextDesc : null
+				
 			}],
 			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
 			[{
 				id : null,
 				textValue : null,
 				type : END_VALIDATE,
-				nextDesc : null
+				
 			}]
-		] : Array<Array<DescLink>>).flatten();
+		] : Array<Array<DescItem>>).flatten();
 	}
 }
 
@@ -331,12 +310,12 @@ class TitleSelector extends DescSelector {
 		return elem.is("h1");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [{
 			id : null,
 			textValue : elem.text(),
 			type : TITLE,
-			nextDesc : null
+			
 		}];
 	}
 }
@@ -346,12 +325,12 @@ class HeadingSelector extends DescSelector {
 		return elem.is("h2");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [{
 			id : null,
 			textValue : elem.text(),
 			type : HEADING,
-			nextDesc : null
+			
 		}];
 	}
 }
@@ -391,14 +370,14 @@ class TextSelector extends DescSelector {
 		return elem.get(0).type == "text";
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		// trace(elem);
 		return [
 			{
 				id: null,
 				textValue: elem.get(0).data,
 				type: DESCRIPTION,
-				nextDesc: null
+				
 			}
 		];
 	}
@@ -409,19 +388,19 @@ class LinkSelector extends DescSelector {
 		return elem.is('a[class!="anchor_offset"]');
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [
 			{
 				id: null,
 				textValue: elem.text(),
 				type: LINK_TEXT,
-				nextDesc: null
+				
 			},
 			{
 				id: null,
 				textValue: elem.attr("href"),
 				type: LINK_URL,
-				nextDesc: null
+				
 			}
 		];
 	}
@@ -442,25 +421,25 @@ class CodeTagSelector extends DescSelector {
 		return elem.is("code");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [
 		{
 			id : null,
 			textValue : null, 
 			type : BEGIN_CODE,
-			nextDesc : null
+			
 		},
 		{
 			id : null,
 			textValue : elem.text(),
 			type : DESCRIPTION,
-			nextDesc : null
+			
 		},
 		{
 			id : null,
 			textValue : null,
 			type : END_CODE,
-			nextDesc : null
+			
 		}
 		];
 	}
@@ -471,25 +450,25 @@ class StrongSelector extends DescSelector {
 		return elem.is("strong");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [
 			{
 				id : null,
 				textValue : null,
 				type : BEGIN_STRONG,
-				nextDesc : null
+				
 			},
 			{
 				id : null,
 				textValue : elem.text(),
 				type : DESCRIPTION,
-				nextDesc : null
+				
 			},
 			{
 				id : null,
 				textValue : elem.text(),
 				type : END_STRONG,
-				nextDesc : null
+				
 			}
 		];
 	}
@@ -518,13 +497,13 @@ class KeySelector extends DescSelector {
 		return elem.is("span.key");
 	}
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [
 			{
 				id : null,
 				textValue : elem.text(),
 				type : DESCRIPTION,
-				nextDesc : null
+				
 			}
 		];
 	}
@@ -546,13 +525,13 @@ class ItalicsSelector extends DescSelector {
         return elem.is("em");
     }
 
-	override function parse(elem:Cheerio<Dynamic>):Array<DescLink> {
+	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return [
 			{
 				id : null,
 				textValue : elem.text(),
 				type : DESCRIPTION,
-				nextDesc : null
+				
 			}
 		];
 	}
