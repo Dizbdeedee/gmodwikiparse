@@ -4,6 +4,8 @@ import haxe.Timer;
 using tink.CoreApi;
 import js.node.Fs;
 import WikiDB;
+import warcio.WARCParser;
+import warcio.WARCResult;
 
 
 typedef Page = {
@@ -11,26 +13,6 @@ typedef Page = {
 	updateCount : Int,
 	viewCount : Int
 }
-
-extern class WARCResult {
-	function readFully():js.lib.Promise<Null<Dynamic>>;
-
-	var warcTargetURI:String;
-
-	var payload:js.lib.Uint8Array;
-
-	var warcType:String;
-}
-
-
-@:jsRequire("warcio", "WARCParser")
-extern class WARCParser {
-	function new(source:Dynamic,?opt:Dynamic);
-
-	function parse():js.lib.Promise<Null<WARCResult>>;
-
-}
-
 
 class Main {
 

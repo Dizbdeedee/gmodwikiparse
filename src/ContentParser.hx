@@ -9,7 +9,7 @@ import js.lib.Uint8Array;
 import cheerio.lib.load.CheerioAPI;
 import cheerio.lib.cheerio.Cheerio;
 import node.Buffer;
-import Main.WARCResult;
+import warcio.WARCResult;
 using tink.CoreApi;
 
 typedef WarcData = {
