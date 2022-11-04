@@ -2,3 +2,5 @@ node_modules
 gmodwiki.warc*
 wikidb
 lib
+gmodwiki.js
+.haxelib
