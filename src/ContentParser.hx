@@ -1,5 +1,9 @@
 package;
 
+import WikiDB.DescItem;
+import WikiDB.DescriptionStorage;
+import tink.sql.Types;
+import tink.sql.Database;
 import WikiDB.FunctionArg;
 import js.lib.Uint8Array;
 import cheerio.lib.load.CheerioAPI;
@@ -13,13 +17,18 @@ typedef WarcData = {
 	buff : Dynamic
 }
 
+@:await
 class ContentParser {
 
 	public static var jq:CheerioAPI;
 
 	final descParser = DescriptionParser.makeDescParser2();
 
-	public function new () {}
+	final dbConnection:WikiDB;
+
+	public function new (_dbConnection:WikiDB) {
+		dbConnection = _dbConnection;
+	}
 
 
 	public function parse(content:WARCResult):Promise<Noise> {
@@ -38,16 +47,17 @@ class ContentParser {
 		var isFunc = jq.call("div.function").length > 0;
 		var isEnum = jq.call("div.enum").length > 0;
 		var isStruct = jq.call("div.struct").length > 0;
-		switch [isFunc,isEnum,isStruct] {
+		var prom:Promise<Noise> = switch [isFunc,isEnum,isStruct] {
 			case [false,false,false]:
 				// trace(parsedWarc);
 				trace('Unmatched... ${parsedWarc.warcTargetURI}');
+				Noise;
 			case [true,false,false]:
-				parseFunction(parsedWarc.warcTargetURI,jq);
+				parseFunction(parsedWarc.warcTargetURI,jq).noise();
 			case [false,true,false]:
-				parseEnum(parsedWarc.warcTargetURI,jq);
+				Promise.resolve(parseEnum(parsedWarc.warcTargetURI,jq));
 			case [false,false,true]:
-				parseStruct(parsedWarc.warcTargetURI,jq);
+				Promise.resolve(parseStruct(parsedWarc.warcTargetURI,jq));
 			default:
 				trace("Multiple page types matched!!");
 				trace(isFunc,isEnum,isStruct);
@@ -56,7 +66,8 @@ class ContentParser {
 				throw "Multiple page types matched!!";
 
 		}
-		return Noise;
+		
+		return prom;
 	}
 
 	function toBool(select:Option<Dynamic>) {
@@ -80,7 +91,7 @@ class ContentParser {
 		return null;
 	}
 
-	function parseFunction(url:String,jq:CheerioAPI):WikiDB.Function {
+	@:async function parseFunction(url:String,jq:CheerioAPI):WikiDB.Function {
 		var title = getCheer(jq,"h1#pagetitle.pagetitle").text();
 		var isHook = toBool(getOptCheer(jq,".hook"));
 		var isClient = toBool(getOptCheer(jq,".realm-client"));
@@ -94,10 +105,12 @@ class ContentParser {
 		}
 		trace(funcName);
 		var descNode = getOptCheer(jq,".description_section");
-		switch (descNode) {
+		var descID = @:await switch (descNode) {
 			case Some(descNode):
-				descParser.parseDescNode(descNode);
+				var descNodes = descParser.parseDescNode(descNode);
+				publishDescToDB(descNodes);
 			default:
+				null;
 		}
 		var funcArgsNode = getOptCheer(jq,".function_arguments");
 		switch (funcArgsNode) {
@@ -113,7 +126,7 @@ class ContentParser {
 			default:
 		}
 		parseMultipleLuaExamples(jq);
-		return {
+		return ({
 			id : -1,
 			name : funcName,
 			url : url,
@@ -122,7 +135,7 @@ class ContentParser {
 			stateClient : isClient,
 			stateServer : isServer,
 			stateMenu : isMenu
-		};
+		} : WikiDB.Function);
 	}
 
 	// and verify
@@ -203,7 +216,7 @@ class ContentParser {
 			default:
 				trace("No description??");
 		}
-		trace(descParser.parseDescNode(code));
+		// trace(descParser.parseDescNode(code));
 		switch (output) {
 			case Some(outputNode):
 				descParser.parseDescNode(outputNode);
@@ -253,7 +266,6 @@ class ContentParser {
 			funcid : -1
 		}
 		// trace(funcRet);
-
 	}
 
 	function parseFuncArg(node:Cheerio<Dynamic>) {
@@ -283,6 +295,57 @@ class ContentParser {
 
 		}
 	}
+
+	function giveDescItemsIDs(arr:Array<DescItem>,maxIndex:Int):Promise<Array<Id<DescItem>>> {
+		var nextID = maxIndex + 1;
+		var insertionDescriptions = arr.map((desc) -> {
+			// untyped desc.id = nextID++;
+			return dbConnection.DescItem.insertOne({
+				id : nextID++,
+				type : desc.type,
+				textValue : desc.textValue
+			});
+		});
+		return Promise.inSequence(insertionDescriptions);
+	}
+
+	function getMaxID() {
+		return dbConnection.DescItem.select({
+			id : tink.sql.expr.Functions.max(DescItem.id)
+		}).first().next((result) -> result.id);
+	}
+
+	function assignFirstDescriptionStorage(initial:Id<DescItem>) {
+		return dbConnection.DescriptionStorage.insertOne({
+			id : -1,
+			descItem : initial
+		}).next((autoDescStoreID) -> {
+			dbConnection.DescriptionStorage.update((ds) -> [ds.id.set(autoDescStoreID)],{
+				where : (ds) -> ds.id == -1
+			}).next(_ -> autoDescStoreID);
+		});
+	}
+
+	function createDescriptionStorages(descItemIDSS:Array<Id<DescItem>>):Promise<Id<DescriptionStorage>> {
+		return assignFirstDescriptionStorage(descItemIDSS[0]).next((autoID) -> {
+			var process:Array<DescriptionStorage> = descItemIDSS.slice(1)
+			.map((descItemID) -> 
+				{
+					id : autoID,
+					descItem : descItemID
+				}
+			);
+			return dbConnection.DescriptionStorage.insertMany(process).next(_ -> autoID);
+		});
+	}
+
+	function publishDescToDB(arr:Array<DescItem>):Promise<Id<DescriptionStorage>> {
+		return getMaxID()
+		.next((maxID) -> giveDescItemsIDs(arr,maxID)
+			.next(createDescriptionStorages));
+	}
+
+	
 
 
 }

@@ -3,6 +3,7 @@
 -main Main
 --library tink_sql
 --library hxnodejs
+--library tink_await
 -dce full
 --js gmodwiki.js
 
