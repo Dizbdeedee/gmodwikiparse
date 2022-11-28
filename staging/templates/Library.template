@@ -1,0 +1,11 @@
+package gmod.libs;
+
+::beginHeader::
+
+::comment::
+@:native("::nativePath::")
+extern class ::libraryName:: {
+::allPartialContent::
+}
+
+::endHeader::

@@ -1,55 +1,32 @@
-import cheerio.lib.load.CheerioAPI;
-import js.Lib;
-import js.Syntax;
+package generators.desc;
+
 using Lambda;
 import cheerio.lib.cheerio.Cheerio;
 import DescSelector;
 import WikiDB.DescItem;
 using js.lib.HaxeIterator;
-typedef ParseResult = {
+
+
+private typedef ParseResult = {
     traverseElements : Int,
     generatedDescs : Array<DescItem>
 }
 
-class DescriptionParser {
+interface DescriptionParser {
+    function parseDescNode(descNode:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem>;
+}
+
+class DescriptionParserDef {
 
     final selectors:Array<DescSelector>;
 
-    //will forget to update. macros are tempting
-    public static function makeDescParser2() {
-        return new DescriptionParser([
-            new PSelector(),
-            new NoteSelector(),
-            new WarnSelector(),
-            new BugSelector(),
-            new DeprecatedSelector(),
-            new RemovedSelector(),
-            new ListSelector(),
-            new LuaCodeSelector(),
-            new HeadingSelector(),
-            new HeadingWithSectionSelector(),
-            new ValidateSelector(),
-            new TitleSelector(),
-            new AnchorSelector(),
-            new ImageSelector(),
-            new TextSelector(),
-            new LinkSelector(),
-            new TableSelector(),
-            new CodeTagSelector(), 
-            new StrongSelector(),
-            new BRSelector(),
-            new JSCodeSelector(),
-            new KeySelector(),
-            new InternalSelector(),
-            new ItalicsSelector(),
-            new ImgSelector(),
-            new ListItemSelector(),
-            new CodeFeatureSelector(),
-            new BoldSelector()
-        ]);
-    }
+    // //will forget to update. macros are tempting
+    // public static function defaultDescParser():DescriptionParser {
+    //     return new DescriptionParser(defaultDescParser());
+    // }
 
-    public function new(_selectors:Array<DescSelector>) {
+    public function new(selectors:Array<DescSelector>) {
+        // selectors = _selectors();
         selectors = _selectors;
     }
 
@@ -70,7 +47,7 @@ class DescriptionParser {
         } else if (results.length == 0) {
             trace("No elements matched!");
             trace(node);
-            throw "No elements matched!";
+            throw "No elements matched!;
         }
         var chosenSelector = selectors[results[0]];
         return {
@@ -79,7 +56,7 @@ class DescriptionParser {
         }
     }
 
-    public function parseDescNode(descNode:Cheerio<Dynamic>):Array<DescItem> {
+    public function parseDescNode(descNode:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem> {
         var curNode:Cheerio<Dynamic> = descNode.contents();
         var allDescriptions:Array<DescItem> = [];
         var skipElements = 1;
@@ -88,7 +65,7 @@ class DescriptionParser {
                 skipElements--;
                 return null;
             }
-            var cheerEl = ContentParser.jq.call(el);
+            var cheerEl = jq.call(el);
             final results = parse(cheerEl);
             allDescriptions = allDescriptions.concat(results.generatedDescs);
             skipElements = results.traverseElements;
@@ -97,5 +74,5 @@ class DescriptionParser {
         return allDescriptions;
     }
 
-    
+
 }

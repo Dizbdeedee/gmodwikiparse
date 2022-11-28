@@ -1,0 +1,6 @@
+package gmod.enums;
+
+::comment::
+enum abstract ::name::(::type::) {
+::allPartialContent::
+}

@@ -1,11 +1,14 @@
+package generators.desc;
 import cheerio.lib.cheerio.Cheerio;
 
 using Lambda;
 
 import WikiDB.DescItem;
 
+
 abstract class DescSelector {
-	public function new() {};
+
+	// public function new() {};
 
 	public abstract function testElement(elem:Cheerio<Dynamic>):Bool;
 
@@ -28,6 +31,12 @@ abstract class DescSelector {
 }
 
 class PSelector extends DescSelector {
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is("p");
 	}
@@ -35,13 +44,19 @@ class PSelector extends DescSelector {
 	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
             [{id : null, textValue : null,type : DESCRIPTION_BREAK_ABOVE, }],
-            DescriptionParser.makeDescParser2().parseDescNode(elem),
+            descParser.parseDescNode(elem),
             [{id : null, textValue : null,type : DESCRIPTION_BREAK_BELOW, }]
         ] : Array<Array<DescItem>>).flatten();
 	}
 }
 
 class NoteSelector extends DescSelector {
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".note");
 	}
@@ -55,7 +70,7 @@ class NoteSelector extends DescSelector {
 					type: BEGIN_NOTE,
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -68,6 +83,13 @@ class NoteSelector extends DescSelector {
 }
 
 class WarnSelector extends DescSelector {
+	
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".warning");
 	}
@@ -82,7 +104,7 @@ class WarnSelector extends DescSelector {
 					
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -96,6 +118,13 @@ class WarnSelector extends DescSelector {
 }
 
 class BugSelector extends DescSelector {
+	
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".bug");
 	}
@@ -110,7 +139,7 @@ class BugSelector extends DescSelector {
 					
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -124,6 +153,13 @@ class BugSelector extends DescSelector {
 }
 
 class DeprecatedSelector extends DescSelector {
+	
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".deprecated");
 	}
@@ -138,7 +174,7 @@ class DeprecatedSelector extends DescSelector {
 					
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -152,6 +188,13 @@ class DeprecatedSelector extends DescSelector {
 }
 
 class RemovedSelector extends DescSelector {
+
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".removed");
 	}
@@ -166,7 +209,7 @@ class RemovedSelector extends DescSelector {
 					
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -180,6 +223,13 @@ class RemovedSelector extends DescSelector {
 }
 
 class InternalSelector extends DescSelector {
+
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".internal");
 	}
@@ -193,7 +243,7 @@ class InternalSelector extends DescSelector {
 					
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[
 				{
 					id: null,
@@ -207,9 +257,17 @@ class InternalSelector extends DescSelector {
 }
 
 class ListSelector extends DescSelector {
+
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is("ul");
 	}
+	
 	override function parse(elem:Cheerio<Dynamic>):Array<DescItem> {
 		return ([
 			[
@@ -220,7 +278,7 @@ class ListSelector extends DescSelector {
 					
 				}
 			],
-			DescriptionParser.makeDescParser2().parseDescNode(elem),
+			descParser.parseDescNode(elem),
 			[
 				{
 					id: null,
@@ -248,6 +306,13 @@ class ListItemSelector extends DescSelector {
 }
 
 class LuaCodeSelector extends DescSelector {
+	
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".code.code-lua");
 	}
@@ -260,7 +325,7 @@ class LuaCodeSelector extends DescSelector {
 			textValue : null,
 			type : BEGIN_LUA_CODE
 		}],
-		DescriptionParser.makeDescParser2().parseDescNode(elem),
+		descParser.parseDescNode(elem),
 		[{
 			id : null,
 			textValue : null,
@@ -282,6 +347,13 @@ class HeadingWithSectionSelector extends DescSelector {
 }
 
 class ValidateSelector extends DescSelector {
+
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is(".validate");
 	}
@@ -294,7 +366,7 @@ class ValidateSelector extends DescSelector {
 				type : BEGIN_VALIDATE,
 				
 			}],
-			DescriptionParser.makeDescParser2().parseDescNode(elem.children("div.inner")),
+			descParser.parseDescNode(elem.children("div.inner")),
 			[{
 				id : null,
 				textValue : null,
@@ -510,13 +582,19 @@ class KeySelector extends DescSelector {
 }
 
 class CodeFeatureSelector extends DescSelector {
+	final descParser:DescriptionParser;
+
+	public function new(_descParser:DescriptionParser) {
+		descParser = _descParser;
+	}
+
 	function testElement(elem:Cheerio<Dynamic>) {
 		return elem.is("span") && elem.parent().is(".code");
 	}
 
 	//we don't care about these span elements currently. at least for my use case, markdown will handle the difficult stuff
 	override function parse(elem:Cheerio<Dynamic>) {
-		return DescriptionParser.makeDescParser2().parseDescNode(elem);
+		return descParser.parseDescNode(elem);
 	}
 }
 

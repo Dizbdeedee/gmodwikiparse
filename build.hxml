@@ -3,7 +3,7 @@
 --library tink_sql
 --library hxnodejs
 --library tink_await
---library gmodwikiparse-externs-dts2hx
+-cp externs
 -dce full
---js gmodwiki.js
+--js staging/gmodwiki.js
 
