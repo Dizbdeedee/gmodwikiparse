@@ -1,4 +1,5 @@
 -cp src
+-cp haxe_libraries/externs
 -main Main
 --library tink_sql
 --library hxnodejs
