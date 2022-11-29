@@ -3,9 +3,14 @@
 import haxe.Timer;
 using tink.CoreApi;
 import js.node.Fs;
-import WikiDB;
+import data.WikiDB;
 import warcio.WARCParser;
 import warcio.WARCResult;
+import generators.desc.DescriptionParser;
+import cheerio.lib.cheerio.Cheerio;
+import generators.desc.DescSelector;
+import cheerio.lib.load.CheerioAPI;
+import ContentParser;
 
 
 typedef Page = {
@@ -70,19 +75,20 @@ class Main {
             trace(out);
         });
         var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc.gz"));
+        var descParserLZ = new DescriptionParserLazy();
         var descParser = new DescriptionParserDef(
         [
-            new PSelector(),
-            new NoteSelector(),
-            new WarnSelector(),
-            new BugSelector(),
-            new DeprecatedSelector(),
-            new RemovedSelector(),
-            new ListSelector(),
-            new LuaCodeSelector(),
+            new PSelector(descParserLZ),
+            new NoteSelector(descParserLZ),
+            new WarnSelector(descParserLZ),
+            new BugSelector(descParserLZ),
+            new DeprecatedSelector(descParserLZ),
+            new RemovedSelector(descParserLZ),
+            new ListSelector(descParserLZ),
+            new LuaCodeSelector(descParserLZ),
             new HeadingSelector(),
             new HeadingWithSectionSelector(),
-            new ValidateSelector(),
+            new ValidateSelector(descParserLZ),
             new TitleSelector(),
             new AnchorSelector(),
             new ImageSelector(),
@@ -94,14 +100,15 @@ class Main {
             new BRSelector(),
             new JSCodeSelector(),
             new KeySelector(),
-            new InternalSelector(),
+            new InternalSelector(descParserLZ),
             new ItalicsSelector(),
             new ImgSelector(),
             new ListItemSelector(),
-            new CodeFeatureSelector(),
+            new CodeFeatureSelector(descParserLZ),
             new BoldSelector()
         ]);
-        var parse = new ContentParserDef(db);
+        descParserLZ.resolve(descParser);
+        var parse = new ContentParserDef(db,descParser);
         parseWorker(warc,parse).handle((outcome) -> {
             switch (outcome) {
                 case Success(_):
@@ -110,5 +117,20 @@ class Main {
                     trace('grr failure $failure');
             }
         });
+    }
+}
+
+//TODO... sigh
+class DescriptionParserLazy implements generators.desc.DescriptionParser {
+    var descParser:generators.desc.DescriptionParser;
+
+    public function new() {}
+
+    public function resolve(_descParser:DescriptionParser) {
+        descParser = _descParser;
+    }
+
+    public function parseDescNode(elem:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem> {
+        return descParser.parseDescNode(elem,jq);
     }
 }

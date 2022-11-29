@@ -1,5 +1,5 @@
 -cp src
--cp haxe_libraries/externs
+-cp haxe_libraries/externs/lib
 -main Main
 --library tink_sql
 --library hxnodejs
@@ -7,4 +7,3 @@
 -cp externs
 -dce full
 --js staging/gmodwiki.js
-

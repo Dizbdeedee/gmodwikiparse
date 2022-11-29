@@ -1,11 +1,11 @@
 package generators.desc;
 
-using Lambda;
 import cheerio.lib.cheerio.Cheerio;
-import DescSelector;
-import WikiDB.DescItem;
+import cheerio.lib.load.CheerioAPI;
+import generators.desc.DescSelector;
+import data.WikiDB.DescItem;
 using js.lib.HaxeIterator;
-
+using Lambda;
 
 private typedef ParseResult = {
     traverseElements : Int,
@@ -16,21 +16,15 @@ interface DescriptionParser {
     function parseDescNode(descNode:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem>;
 }
 
-class DescriptionParserDef {
+class DescriptionParserDef implements DescriptionParser {
 
     final selectors:Array<DescSelector>;
 
-    // //will forget to update. macros are tempting
-    // public static function defaultDescParser():DescriptionParser {
-    //     return new DescriptionParser(defaultDescParser());
-    // }
-
-    public function new(selectors:Array<DescSelector>) {
-        // selectors = _selectors();
+    public function new(_selectors:Array<DescSelector>) {
         selectors = _selectors;
     }
 
-    function parse(node:Cheerio<Dynamic>):ParseResult {
+    function parse(node:Cheerio<Dynamic>,jq:CheerioAPI):ParseResult {
         var results:Array<Int> = [];
         for (i in 0...selectors.length) {
             if (selectors[i].testElement(node)) {
@@ -47,11 +41,11 @@ class DescriptionParserDef {
         } else if (results.length == 0) {
             trace("No elements matched!");
             trace(node);
-            throw "No elements matched!;
+            throw "No elements matched!";
         }
         var chosenSelector = selectors[results[0]];
         return {
-            generatedDescs : chosenSelector.parse(node),
+            generatedDescs : chosenSelector.parse(node,jq),
             traverseElements : chosenSelector.getNoTraversalElements()
         }
     }
@@ -63,16 +57,14 @@ class DescriptionParserDef {
         curNode.each(function (_,el) {
             if (skipElements > 1) {
                 skipElements--;
-                return null;
+                return true;
             }
             var cheerEl = jq.call(el);
-            final results = parse(cheerEl);
+            final results = parse(cheerEl,jq);
             allDescriptions = allDescriptions.concat(results.generatedDescs);
             skipElements = results.traverseElements;
             return true;
         });
         return allDescriptions;
     }
-
-
 }

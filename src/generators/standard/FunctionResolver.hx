@@ -10,4 +10,4 @@ function parseMultipleReturns(rets:Cheerio<Dynamic>):Promise<Array<WikiDB.Functi
         return true;
     });
     return Promise.inSequence(funcRets);
-}szaq
+}

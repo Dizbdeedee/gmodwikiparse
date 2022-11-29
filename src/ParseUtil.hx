@@ -1,4 +1,8 @@
-package parsers;
+package;
+
+import cheerio.lib.cheerio.Cheerio;
+import cheerio.lib.load.CheerioAPI;
+import haxe.ds.Option;
 
 // and verify
 function getCheer(jq:CheerioAPI,select:String):Cheerio<Dynamic> {
@@ -68,5 +72,3 @@ function toBool(select:Option<Dynamic>) {
             false;
     }
 }
-
-
