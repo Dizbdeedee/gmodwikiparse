@@ -10,7 +10,7 @@ class FunctionParserDef {
     public function new(descriptionParser:DescriptionParser) {
 
     }
-    
+
     @:async function parseFunction(url:String,jq:CheerioAPI) {
         var title = getCheer(jq,"h1#pagetitle.pagetitle").text();
         var isHook = toBool(getOptCheer(jq,".hook"));
@@ -25,15 +25,16 @@ class FunctionParserDef {
         }
         trace(funcName);
         var descNode = getOptCheer(jq,".description_section");
-        var descID = @:await switch (descNode) {
-            case Some(descNode):
-                var descNodes = descParser.parseDescNode(descNode);
-                publishAndValidate(descNodes);
-            default:
-                Promise.resolve(null);
-        }
-        
-        var luaExamples = @:await parseMultipleLuaExamples(jq);
+
+        // var descID = @:await switch (descNode) {
+        //     case Some(descNode):
+        //         var descNodes = descParser.parseDescNode(descNode);
+        //         publishAndValidate(descNodes);
+        //     default:
+        //         Promise.resolve(null);
+        // }
+
+        // var luaExamples = @:await parseMultipleLuaExamples(jq);
         var func:WikiDB.Function = {
             id : null,
             name : funcName,
@@ -44,12 +45,12 @@ class FunctionParserDef {
             stateServer : isServer,
             stateMenu : isMenu
         };
-        return ({
-            func : func,
-            funcargs : funcArgsArr,
-            funcrets : retsArr,
-            luaexamples : luaExamples
-        } : WikiDB.FunctionCreation);
+        // return ({
+        //     func : func,
+        //     funcargs : funcArgsArr,
+        //     funcrets : retsArr,
+        //     luaexamples : luaExamples
+        // } : WikiDB.FunctionCreation);
     }
 
 

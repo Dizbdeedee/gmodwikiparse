@@ -1,7 +1,6 @@
 package generators.standard;
+
 class Function {}
-
-
 
 interface FunctionPublisher {
     function publishFunction(funcCreate:WikiDB.FunctionCreation):Promise<Noise>;
