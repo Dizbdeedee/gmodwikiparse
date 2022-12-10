@@ -1,6 +1,5 @@
 package generators.standard;
 
-
 interface FunctionArgResolver {
     function resolve(inp:Cheerio<Dynamic>):Array<UnresolvedFunctionArg>;
 }

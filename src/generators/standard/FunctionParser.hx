@@ -1,14 +1,16 @@
 package generators.standard;
 
 interface FunctionParser {
-    function parseFunction(url:String,jq:CheerioAPI):Promise<WikiDB.FunctionCreation>;
+    function parseFunction(url:String,jq:CheerioAPI):UnresolvedFunction;
 }
 
 @:await
 class FunctionParserDef {
 
-    public function new(descriptionParser:DescriptionParser) {
+    final descriptionResolver:DescriptionResolver;
 
+    public function new(_descriptionResolver:DescriptionResolver) {
+        descriptionResolver = _descriptionResolver;
     }
 
     @:async function parseFunction(url:String,jq:CheerioAPI) {
@@ -25,33 +27,18 @@ class FunctionParserDef {
         }
         trace(funcName);
         var descNode = getOptCheer(jq,".description_section");
-
-        // var descID = @:await switch (descNode) {
-        //     case Some(descNode):
-        //         var descNodes = descParser.parseDescNode(descNode);
-        //         publishAndValidate(descNodes);
-        //     default:
-        //         Promise.resolve(null);
-        // }
-
-        // var luaExamples = @:await parseMultipleLuaExamples(jq);
-        var func:WikiDB.Function = {
-            id : null,
-            name : funcName,
-            url : url,
-            description : descID,
-            isHook : isHook,
-            stateClient : isClient,
-            stateServer : isServer,
-            stateMenu : isMenu
-        };
-        // return ({
-        //     func : func,
-        //     funcargs : funcArgsArr,
-        //     funcrets : retsArr,
-        //     luaexamples : luaExamples
-        // } : WikiDB.FunctionCreation);
+        new DescriptionResolver()
+        descriptionResolver.setParse(descNode);
+        return {
+            name: funcName,
+            url: url,
+            description:
+        }
     }
 
 
 }
+
+//DescriptionResolver: we need a factory. But I don't want to call it a factory. It doesn't describe itself in that way. A factory doesn't mean anything and raises questions on what creating a new original object actually does
+//is it valid to create the original object without a factory? What does the factory store??? ect ect.
+//So like a dependency something or another
