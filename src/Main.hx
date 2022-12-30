@@ -1,5 +1,6 @@
 // import node_warc.WARCParser;
 // import haxe.Json;
+import generators.standard.FunctionResolver;
 import haxe.Timer;
 using tink.CoreApi;
 import js.node.Fs;
@@ -7,6 +8,10 @@ import data.WikiDB;
 import warcio.WARCParser;
 import warcio.WARCResult;
 import generators.desc.DescriptionParser;
+import generators.standard.UnresolvedFunctionParse;
+import generators.standard.UnresolvedFunctionRetParse;
+import generators.standard.UnresolvedFunctionArgParse;
+import generators.desc.DescriptionPublisher;
 import cheerio.lib.cheerio.Cheerio;
 import generators.desc.DescSelector;
 import cheerio.lib.load.CheerioAPI;
@@ -108,12 +113,19 @@ class Main {
             new BoldSelector()
         ]);
         descParserLZ.resolve(descParser);
-        var parse = new ContentParserDef(db,descParser);
+        var funcResolver = new FunctionResolverDef(
+            new UnresolvedFunctionParseDef(descParser),
+            new UnresolvedFunctionArgParseDef(descParser),
+            new UnresolvedFunctionRetParseDef(descParser),
+            new DescriptionPublisherDef()
+        );
+        var parse = new ContentParserDef(db,descParser,funcResolver);
         parseWorker(warc,parse).handle((outcome) -> {
             switch (outcome) {
                 case Success(_):
                     trace("Poggers completed");
                 case Failure(failure):
+                    trace(failure.callStack);
                     trace('grr failure $failure');
             }
         });

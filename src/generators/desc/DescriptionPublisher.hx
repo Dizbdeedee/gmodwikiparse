@@ -1,19 +1,24 @@
-package publishers;
+package generators.desc;
+
+import data.WikiDB;
+import tink.sql.Types;
+using tink.CoreApi;
 
 interface DescriptionPublisher {
-	function publish(descNodes:Array<DescItem>):Promise<Id<DescriptionStorage>>;
+	function publish(conn:WikiDB,descNodes:UnresolvedDescription):Promise<Id<DescriptionStorage>>;
 }
 
 @:await
 class DescriptionPublisherDef implements DescriptionPublisher {
 	
-	public function new(conn:WikiDB) {
+	public function new() {}
+
+    var dbConnection:WikiDB;
+
+	static var lastPublishID:Int = Std.int(Math.NEGATIVE_INFINITY);
+
+    public function publish(conn:data.WikiDB,descNodes:UnresolvedDescription):Promise<Id<DescriptionStorage>> {
 		dbConnection = conn;
-	}
-
-    final dbConnection:WikiDB;
-
-    public function publish(descNodes:Array<DescItem>):Promise<Id<DescriptionStorage>> {
 		if (descNodes.length < 1) return Promise.reject(new Error("Need at least one descNode to publish..."));
 		return publishDescToDB(descNodes)
 		.next(descID -> validateInsertion(descNodes,descID)
@@ -21,7 +26,7 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 		);
 	}
 
-	function validateInsertion(arr:Array<DescItem>,id:Id<DescriptionStorage>):Promise<Bool> {
+	function validateInsertion(arr:UnresolvedDescription,id:Id<DescriptionStorage>):Promise<Bool> {
 		return dbConnection.DescItem
 		.leftJoin(dbConnection.DescriptionStorage)
 		.on(DescriptionStorage.descItem == DescItem.id)
@@ -53,24 +58,27 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 		});
 	}
 
+	
+
 	function giveDescItemsIDs(arr:Array<DescItem>,maxIndex:Int):Promise<Array<Id<DescItem>>> {
-		var nextID = maxIndex + 1;
-		var insertionDescriptions = arr.map((desc) -> {
-			// untyped desc.id = nextID++;
-			return dbConnection.DescItem.insertOne({
-				id : nextID++,
+		var ptrigger = Promise.trigger();
+		lastPublishID = Std.int(Math.max(maxIndex + 1,lastPublishID + 1)); //TODO, why does the maxIndex we get collide sometimes? trace futures how to resolve cleanly?
+		var promises:Array<Promise<Id<DescItem>>> = [];
+		for (desc in arr) {
+			promises.push(dbConnection.DescItem.insertOne({
+				id : lastPublishID++,
 				type : desc.type,
 				textValue : desc.textValue
-			});
-		});
-		return Promise.inSequence(insertionDescriptions);
+			}));	
+		}
+
+		return Promise.inSequence(promises);
 	}
 
-	@:async function getMaxID() {
-		var result = @:await dbConnection.DescItem.select({
+	function getMaxID() {
+		return dbConnection.DescItem.select({
 			id : tink.sql.expr.Functions.max(DescItem.id)
-		}).first();
-		return result.id;
+		}).first().next((ob) -> ob.id);
 	}
 
 	@:async function assignFirstDescriptionStorage(initial:Id<DescItem>) {
@@ -97,10 +105,11 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 		return autoID;
 	}
 
-	@:async function publishDescToDB(arr:Array<DescItem>) {
-		var maxID = @:await getMaxID();
-		var descItemIDS:Array<Id<DescItem>> = @:await giveDescItemsIDs(arr,maxID);
-		var idDescriptionStorage = @:await createDescriptionStorages(descItemIDS);
-		return idDescriptionStorage;
+	function publishDescToDB(arr:Array<DescItem>) {
+		return getMaxID().next((maxID) -> 
+			giveDescItemsIDs(arr,maxID).next((descItemIDS) -> 
+				createDescriptionStorages(descItemIDS).next((idDescStorage) -> idDescStorage)
+			)
+		);
 	}
 }

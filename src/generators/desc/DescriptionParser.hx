@@ -7,6 +7,9 @@ import data.WikiDB.DescItem;
 using js.lib.HaxeIterator;
 using Lambda;
 
+import data.WikiDB.DescItem;
+
+
 private typedef ParseResult = {
     traverseElements : Int,
     generatedDescs : Array<DescItem>
@@ -50,9 +53,9 @@ class DescriptionParserDef implements DescriptionParser {
         }
     }
 
-    public function parseDescNode(descNode:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem> {
+    public function parseDescNode(descNode:Cheerio<Dynamic>,jq:CheerioAPI):UnresolvedDescription {
         var curNode:Cheerio<Dynamic> = descNode.contents();
-        var allDescriptions:Array<DescItem> = [];
+        var allDescriptions:UnresolvedDescription = [];
         var skipElements = 1;
         curNode.each(function (_,el) {
             if (skipElements > 1) {

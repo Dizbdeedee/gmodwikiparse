@@ -1,22 +1,10 @@
 package;
 
-import data.WikiDB.DescItem;
-import data.WikiDB.DescriptionStorage;
-import tink.sql.Types;
-import tink.sql.Database;
-import data.WikiDB.FunctionArg;
-import js.lib.Uint8Array;
-import cheerio.lib.load.CheerioAPI;
-import cheerio.lib.cheerio.Cheerio;
-import node.Buffer;
 import warcio.WARCResult;
 import generators.desc.DescriptionParser;
-import ParseUtil.getOptCheer;
-import ParseUtil.getCheer;
-import ParseUtil.getChildCheer;
-import ParseUtil.getChildOptCheer;
+import generators.standard.FunctionResolver;
+import ParseUtil;
 using tink.CoreApi;
-using Lambda;
 
 typedef WarcData = {
     url : String,
@@ -31,15 +19,18 @@ interface ContentParser {
 @:await
 class ContentParserDef implements ContentParser {
 
-    var jq:CheerioAPI;
+    // var jq:CheerioAPI;
 
     final descParser:DescriptionParser;
 
     final dbConnection:data.WikiDB;
 
-    public function new (_dbConnection:data.WikiDB,_descParser:DescriptionParser) {
+    final funcResolver:FunctionResolver;
+
+    public function new (_dbConnection:data.WikiDB,_descParser:DescriptionParser,_funcResolver:FunctionResolver) {
         dbConnection = _dbConnection;
         descParser = _descParser;
+        funcResolver = _funcResolver;
     }
 
     public function parse(content:WARCResult):Promise<Noise> {
@@ -52,7 +43,7 @@ class ContentParserDef implements ContentParser {
     }
 
     function loadHTML(parsedWarc:WARCResult) {
-        jq = Cheerio.load(cast node.buffer.Buffer.from(parsedWarc.payload));
+        final jq = Cheerio.load(cast node.buffer.Buffer.from(parsedWarc.payload));
         return processExceptions(parsedWarc.warcTargetURI,jq).next((processed) -> {
             if (processed) return Promise.resolve(Noise);
             var isFunc = getOptCheer(jq,"div.function");
@@ -64,8 +55,9 @@ class ContentParserDef implements ContentParser {
                     trace('Unmatched... ${parsedWarc.warcTargetURI}');
                     Promise.resolve(Noise);
                 case [Some(_),None,None]:
-                    // publishFunction(parsedWarc.warcTargetURI,jq);
-                    Promise.resolve(Noise);
+                    var unresolved = funcResolver.resolve(parsedWarc.warcTargetURI,jq);
+                    // trace(unresolved);
+                    funcResolver.publish(dbConnection,unresolved);
                 case [None,Some(_),None]:
                     // Promise.resolve(parseEnum(parsedWarc.warcTargetURI,jq));
                     Promise.resolve(Noise);

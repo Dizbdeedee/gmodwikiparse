@@ -1,9 +1,10 @@
 -cp src
 -cp haxe_libraries/externs/lib
 -main Main
+-D error-stack
 --library tink_sql
 --library hxnodejs
 --library tink_await
 -cp externs
 -dce full
---js staging/gmodwiki.js
+--js gmodwiki.js

@@ -6,7 +6,6 @@ using Lambda;
 
 import data.WikiDB.DescItem;
 
-
 abstract class DescSelector {
 
     public abstract function testElement(elem:Cheerio<Dynamic>):Bool;
