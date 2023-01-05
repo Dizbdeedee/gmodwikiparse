@@ -1,5 +1,7 @@
 // import node_warc.WARCParser;
 // import haxe.Json;
+import generators.gclass.GClassResolver.GClassResolverDef;
+import typelink.TypeLinker;
 import generators.standard.FunctionResolver;
 import haxe.Timer;
 using tink.CoreApi;
@@ -16,6 +18,8 @@ import cheerio.lib.cheerio.Cheerio;
 import generators.desc.DescSelector;
 import cheerio.lib.load.CheerioAPI;
 import ContentParser;
+import ContentParserTest;
+import ParseChooser;
 
 
 typedef Page = {
@@ -68,67 +72,95 @@ class Main {
             db.GClass.create(true),
             db.Library.create(true),
             db.GEnum.create(true),
-            db.GEnumMembers.create(true)
+            db.GEnumMembers.create(true),
+            db.GClassURL.create(true)
+            // db.Link_ResolvedTypes.create(true)
         ];
         return Promise.inParallel(databasePromises);
     }
 
+    static function linkMain(db:WikiDB) {
+        db.Link_ResolvedTypes.drop().flatMap((x) ->
+            db.Link_ResolvedTypes.create(true).next((_) -> {
+                trace("Poorly...");
+                TypeLinker.addLuaTypes(db);
+                Noise;
+            })
+        ).handle((x) -> {
+            trace(x);
+            trace("Done");
+        });
+    }
+
+    static function afterDB() {
+
+    }
+
     public static function main() {
-        var driver = new tink.sql.drivers.Sqlite(s -> "wikidb");
+        var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
         var db = new WikiDB("wiki_db",driver);
-        createDBs(db).handle((out) -> {
-            trace(out);
+        createDBs(db).handle(_ -> {
+            var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc.gz"));
+            var descParserLZ = new DescriptionParserLazy();
+            var descParser = new DescriptionParserDef(
+            [
+                new PSelector(descParserLZ),
+                new NoteSelector(descParserLZ),
+                new WarnSelector(descParserLZ),
+                new BugSelector(descParserLZ),
+                new DeprecatedSelector(descParserLZ),
+                new RemovedSelector(descParserLZ),
+                new ListSelector(descParserLZ),
+                new LuaCodeSelector(descParserLZ),
+                new HeadingSelector(),
+                new HeadingWithSectionSelector(),
+                new ValidateSelector(descParserLZ),
+                new TitleSelector(),
+                new AnchorSelector(),
+                new ImageSelector(),
+                new TextSelector(),
+                new LinkSelector(),
+                new TableSelector(),
+                new CodeTagSelector(),
+                new StrongSelector(),
+                new BRSelector(),
+                new JSCodeSelector(),
+                new KeySelector(),
+                new InternalSelector(descParserLZ),
+                new ItalicsSelector(),
+                new ImgSelector(),
+                new ListItemSelector(),
+                new CodeFeatureSelector(descParserLZ),
+                new BoldSelector()
+            ]);
+            descParserLZ.resolve(descParser);
+            var funcResolver = new FunctionResolverDef(
+                new UnresolvedFunctionParseDef(descParser),
+                new UnresolvedFunctionArgParseDef(descParser),
+                new UnresolvedFunctionRetParseDef(descParser),
+                new DescriptionPublisherDef()
+            );
+            #if !test
+            var parse = new ContentParserDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef());
+            parseWorker(warc,parse).handle((outcome) -> {
+                switch (outcome) {
+                    case Success(_):
+                        linkMain(db);
+                        trace("Poggers completed");
+                    case Failure(failure):
+                        trace(failure.callStack);
+                        trace('grr failure $failure');
+                }
+            });
+            #else
+            var parse = new ContentParserTestDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef());
+            parse.parseTest().handle(_ -> {
+                
+            });
+            #end
         });
-        var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc.gz"));
-        var descParserLZ = new DescriptionParserLazy();
-        var descParser = new DescriptionParserDef(
-        [
-            new PSelector(descParserLZ),
-            new NoteSelector(descParserLZ),
-            new WarnSelector(descParserLZ),
-            new BugSelector(descParserLZ),
-            new DeprecatedSelector(descParserLZ),
-            new RemovedSelector(descParserLZ),
-            new ListSelector(descParserLZ),
-            new LuaCodeSelector(descParserLZ),
-            new HeadingSelector(),
-            new HeadingWithSectionSelector(),
-            new ValidateSelector(descParserLZ),
-            new TitleSelector(),
-            new AnchorSelector(),
-            new ImageSelector(),
-            new TextSelector(),
-            new LinkSelector(),
-            new TableSelector(),
-            new CodeTagSelector(),
-            new StrongSelector(),
-            new BRSelector(),
-            new JSCodeSelector(),
-            new KeySelector(),
-            new InternalSelector(descParserLZ),
-            new ItalicsSelector(),
-            new ImgSelector(),
-            new ListItemSelector(),
-            new CodeFeatureSelector(descParserLZ),
-            new BoldSelector()
-        ]);
-        descParserLZ.resolve(descParser);
-        var funcResolver = new FunctionResolverDef(
-            new UnresolvedFunctionParseDef(descParser),
-            new UnresolvedFunctionArgParseDef(descParser),
-            new UnresolvedFunctionRetParseDef(descParser),
-            new DescriptionPublisherDef()
-        );
-        var parse = new ContentParserDef(db,descParser,funcResolver);
-        parseWorker(warc,parse).handle((outcome) -> {
-            switch (outcome) {
-                case Success(_):
-                    trace("Poggers completed");
-                case Failure(failure):
-                    trace(failure.callStack);
-                    trace('grr failure $failure');
-            }
-        });
+        // linkMain(db);
+        
     }
 }
 

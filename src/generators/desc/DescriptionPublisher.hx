@@ -22,8 +22,7 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 		if (descNodes.length < 1) return Promise.reject(new Error("Need at least one descNode to publish..."));
 		return publishDescToDB(descNodes)
 		.next(descID -> validateInsertion(descNodes,descID)
-			.next(_ -> descID)
-		);
+		.swap(descID));
 	}
 
 	function validateInsertion(arr:UnresolvedDescription,id:Id<DescriptionStorage>):Promise<Bool> {
@@ -49,9 +48,10 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 				if (!verify) {
 					// trace('id : ${descItems[i].id == arr[i].id}');
 					// trace('textValue : ${descITems}')
+					trace('Unverified id $id');
 					trace('textValue : ${sql.textValue} ${presql.textValue} ${sql.textValue == presql.textValue}');
 					trace('type : ${sql.type} ${presql.type} ${sql.type == presql.type}');
-					throw "DUMB";
+					throw "Failed to validate insertion of description.";
 				}
 			}
 			return verify;
@@ -61,17 +61,15 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 	
 
 	function giveDescItemsIDs(arr:Array<DescItem>,maxIndex:Int):Promise<Array<Id<DescItem>>> {
-		var ptrigger = Promise.trigger();
 		lastPublishID = Std.int(Math.max(maxIndex + 1,lastPublishID + 1)); //TODO, why does the maxIndex we get collide sometimes? trace futures how to resolve cleanly?
 		var promises:Array<Promise<Id<DescItem>>> = [];
 		for (desc in arr) {
-			promises.push(dbConnection.DescItem.insertOne({
+			promises.push(Promise.lazy(() -> dbConnection.DescItem.insertOne({
 				id : lastPublishID++,
 				type : desc.type,
 				textValue : desc.textValue
-			}));	
+			})));	
 		}
-
 		return Promise.inSequence(promises);
 	}
 
@@ -105,11 +103,10 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 		return autoID;
 	}
 
-	function publishDescToDB(arr:Array<DescItem>) {
-		return getMaxID().next((maxID) -> 
-			giveDescItemsIDs(arr,maxID).next((descItemIDS) -> 
-				createDescriptionStorages(descItemIDS).next((idDescStorage) -> idDescStorage)
-			)
-		);
+	function publishDescToDB(arr:Array<DescItem>):Promise<Id<DescriptionStorage>> {
+		return getMaxID()
+		.next((maxID) -> giveDescItemsIDs(arr,maxID)
+		.next((descItemIDS) -> createDescriptionStorages(descItemIDS)
+		.next((idDescStorage) -> idDescStorage)));
 	}
 }

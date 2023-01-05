@@ -1,5 +1,8 @@
 package;
 
+import haxe.Json;
+import js.node.Fs;
+import generators.gclass.GClassResolver;
 import warcio.WARCResult;
 import generators.desc.DescriptionParser;
 import generators.standard.FunctionResolver;
@@ -16,6 +19,16 @@ interface ContentParser {
     function parse(content:WARCResult):Promise<Noise>;
 }
 
+typedef Tests = {
+    funcs : Array<SavedResult>,
+    gclasses : Array<SavedResult>
+}
+
+typedef SavedResult = {
+    uri : String,
+    buffer : String
+}
+
 @:await
 class ContentParserDef implements ContentParser {
 
@@ -26,11 +39,23 @@ class ContentParserDef implements ContentParser {
     final dbConnection:data.WikiDB;
 
     final funcResolver:FunctionResolver;
+    
+    final gclassResolver:GClassResolver;
 
-    public function new (_dbConnection:data.WikiDB,_descParser:DescriptionParser,_funcResolver:FunctionResolver) {
+    final parseChooser:ParseChooser;
+
+    final tests:Tests = {
+        funcs : [],
+        gclasses : []
+    }
+
+    public function new (_dbConnection:data.WikiDB,_descParser:DescriptionParser
+        ,_funcResolver:FunctionResolver,_gclassResolver:GClassResolver,_parseChooser) {
         dbConnection = _dbConnection;
         descParser = _descParser;
         funcResolver = _funcResolver;
+        gclassResolver = _gclassResolver;
+        parseChooser = _parseChooser;
     }
 
     public function parse(content:WARCResult):Promise<Noise> {
@@ -42,34 +67,51 @@ class ContentParserDef implements ContentParser {
         return handledPromise.noise();
     }
 
+
+    function updateOutputTests() {
+        Fs.writeFileSync("tests.json",Json.stringify(tests));
+    }
+
     function loadHTML(parsedWarc:WARCResult) {
         final jq = Cheerio.load(cast node.buffer.Buffer.from(parsedWarc.payload));
         return processExceptions(parsedWarc.warcTargetURI,jq).next((processed) -> {
-            if (processed) return Promise.resolve(Noise);
-            var isFunc = getOptCheer(jq,"div.function");
-            var isEnum = getOptCheer(jq,"div.enum");
-            var isStruct = getOptCheer(jq,"div.struct");
-            return switch [isFunc,isEnum,isStruct] {
-                case [None,None,None]:
-                    // trace(parsedWarc);
-                    trace('Unmatched... ${parsedWarc.warcTargetURI}');
-                    Promise.resolve(Noise);
-                case [Some(_),None,None]:
+            if (processed) return Promise.NOISE;
+            trace('URI ${parsedWarc.warcTargetURI}');
+            return switch (parseChooser.choose(jq,parsedWarc.warcTargetURI)) { 
+                case NoMatch:
+                    trace('Unmatched ${parsedWarc.warcTargetURI}');
+                    Promise.NOISE;
+                case Function:
+                    if (tests.funcs.length < 5) {
+                        tests.funcs.push({
+                            uri: parsedWarc.warcTargetURI,
+                            buffer: node.buffer.Buffer.from(parsedWarc.payload).toString()
+                        });
+                        updateOutputTests();
+                    }
                     var unresolved = funcResolver.resolve(parsedWarc.warcTargetURI,jq);
                     // trace(unresolved);
+                    
                     funcResolver.publish(dbConnection,unresolved);
-                case [None,Some(_),None]:
-                    // Promise.resolve(parseEnum(parsedWarc.warcTargetURI,jq));
-                    Promise.resolve(Noise);
-                case [None,None,Some(_)]:
-                    // Promise.resolve(parseStruct(parsedWarc.warcTargetURI,jq));
-                    Promise.resolve(Noise);
-                default:
-                    trace("Multiple page types matched!!");
-                    trace(isFunc,isEnum,isStruct);
 
-                    // trace(data.warcTargetURI);
-                    throw "Multiple page types matched!!";
+                case Enum:
+                    // Promise.resolve(parseEnum(parsedWarc.warcTargetURI,jq));
+                    Promise.NOISE;
+                case Struct:
+                    // Promise.resolve(parseStruct(parsedWarc.warcTargetURI,jq));
+                    Promise.NOISE;
+                case GClass:
+                    if (tests.gclasses.length < 5) {
+                        tests.gclasses.push({
+                            uri: parsedWarc.warcTargetURI,
+                            buffer: node.buffer.Buffer.from(parsedWarc.payload).toString()
+                        });
+                        updateOutputTests();
+                    }
+                    var unresolved = gclassResolver.resolve(parsedWarc.warcTargetURI,jq);
+                    gclassResolver.publish(dbConnection,unresolved);
+                case Panel | Hooks:
+                    Promise.NOISE;
             }
         });
     }
@@ -79,6 +121,9 @@ class ContentParserDef implements ContentParser {
             case "https://wiki.facepunch.com/gmod/Enums/STENCIL":
                 trace("Stencil!");
                 // parseEnum(parsedWarc.warcTargetURI,jq).next(parsedWarc.warcTargetURI);
+                Promise.resolve(true);
+            case "https://wiki.facepunch.com/gmod/PLAYER_Hooks":
+                trace("Player Hooks hooks...");
                 Promise.resolve(true);
             default:
                 Promise.resolve(false);

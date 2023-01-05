@@ -205,52 +205,52 @@ typedef GEnumCreation = {
 
 
 
-@:tables(DescItem,DescriptionStorage,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers)
-interface WikiDBDef extends tink.sql.DatabaseDefinition {}
-typedef WikiDB = tink.sql.Database<WikiDBDef>;
 
 //Lua linkage. All the things we can infer from links, and strings. Lua type inference goes here.
 
-typedef LibraryOwns = {
+typedef Link_LibraryOwns = {
     var libraryID(default,never):Id<Library>;
     var funcID(default,never):Id<Function>;
 }
 
-typedef GClassOwns = {
+typedef Link_GClassOwns = {
     var gclassID(default,never):Id<GClass>;
     var funcID(default,never):Id<Function>;
 }
 
-typedef HookOwns = {
+typedef Link_HookOwns = {
     var hookID(default,never):Id<GClass>; //did we forget hooks?
     var funcID(default,never):Id<Function>;
 }
 
 //if we don't match in this table something has gone wrong with resolving types and we need to abort
-typedef ResolvedTypes = {
-    @:primary var typeID(default,never):Id<ResolvedTypes>;
-    @:unique var name(default,never):VarChar<255>;
+typedef Link_ResolvedTypes = {
+    @:primary
+    @:autoIncrement var typeID(default,never):Id<Link_ResolvedTypes>;
+    var name(default,never):VarChar<255>;
+    var url(default,never):Null<VarChar<255>>;
 }
 
-typedef FunctionArgTypeResolve = {
+typedef Link_FunctionArgTypeResolve = {
     @:primary var funcArgID(default,never):Id<FunctionArg>;
-    var typeID(default,never):Id<ResolvedTypes>;
+    var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
-typedef FunctionRetTypeResolve = {
+typedef Link_FunctionRetTypeResolve = {
     @:primary var funcRetID(default,never):Id<FunctionRet>;
-    var typeID(default,never):Id<ResolvedTypes>;
+    var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
-typedef StructMemberResolve = {
+typedef Link_StructMemberResolve = {
     @:primary var structMemeberID(default,never):Id<StructMember>;
-    var typeID(default,never):Id<ResolvedTypes>;
+    var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
-
-interface LinkageDBDef extends tink.sql.DatabaseDefinition {}
-// class TypingDB extends tink.sql.Database {}
-
+@:tables(DescItem,DescriptionStorage,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers,
+    GClassURL,
+    Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,Link_ResolvedTypes,Link_FunctionArgTypeResolve,Link_FunctionRetTypeResolve,Link_StructMemberResolve)
+interface WikiDBDef extends tink.sql.DatabaseDefinition {}
+typedef WikiDB = tink.sql.Database<WikiDBDef>;
 
 typedef HaxeTypes = {
     @:primary var haxeTypeID(default,never):Id<HaxeTypes>;

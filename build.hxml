@@ -7,4 +7,4 @@
 --library tink_await
 -cp externs
 -dce full
---js gmodwiki.js
+--js staging/gmodwiki.js

@@ -11,7 +11,7 @@ function getCheer(jq:CheerioAPI,select:String):Cheerio<Dynamic> {
         verifySelector(cheer);
     } catch (e) {
         trace(select);
-        throw "No cheer";
+        throw e;
         // throw e;
     }
     return cheer;
@@ -46,6 +46,8 @@ function getChildOptCheer(node:Cheerio<Dynamic>,select:String):Option<Cheerio<Dy
 
 function verifySelector(node:Cheerio<Dynamic>) {
     if (node.length > 1) {
+        trace(node.length);
+        // trace(node.toArray());
         trace("Too many selected!");
         // trace(node);
         throw new haxe.Exception("Too many selected");
