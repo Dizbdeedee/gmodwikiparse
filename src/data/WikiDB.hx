@@ -174,8 +174,14 @@ typedef Panel = {
     @:primary var id(default,never):Id<Panel>;
     var name(default,never):VarChar<255>;
     var url(default,never):VarChar<1024>;
-    var parentLink(default,never):VarChar<1024>;
+    var ?parentLink(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
+}
+
+typedef PanelURL = {
+    var urlNo(default,never):SmallInt;
+    var panelID(default,never):Id<Panel>;
+    var url:VarChar<1024>;
 }
 
 
@@ -247,7 +253,7 @@ typedef Link_StructMemberResolve = {
 }
 
 @:tables(DescItem,DescriptionStorage,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers,
-    GClassURL,
+    GClassURL,Panel,PanelURL,
     Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,Link_ResolvedTypes,Link_FunctionArgTypeResolve,Link_FunctionRetTypeResolve,Link_StructMemberResolve)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;

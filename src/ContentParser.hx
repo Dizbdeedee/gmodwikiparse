@@ -1,5 +1,6 @@
 package;
 
+import generators.panel.PanelResolver;
 import haxe.Json;
 import js.node.Fs;
 import generators.gclass.GClassResolver;
@@ -44,18 +45,22 @@ class ContentParserDef implements ContentParser {
 
     final parseChooser:ParseChooser;
 
+    final panelResolver:PanelResolver;
+
     final tests:Tests = {
         funcs : [],
         gclasses : []
     }
 
-    public function new (_dbConnection:data.WikiDB,_descParser:DescriptionParser
-        ,_funcResolver:FunctionResolver,_gclassResolver:GClassResolver,_parseChooser) {
+    public function new (_dbConnection,_descParser
+        ,_funcResolver,_gclassResolver,_parseChooser,
+        _panelResolver) {
         dbConnection = _dbConnection;
         descParser = _descParser;
         funcResolver = _funcResolver;
         gclassResolver = _gclassResolver;
         parseChooser = _parseChooser;
+        panelResolver = _panelResolver;
     }
 
     public function parse(content:WARCResult):Promise<Noise> {
@@ -110,8 +115,12 @@ class ContentParserDef implements ContentParser {
                     }
                     var unresolved = gclassResolver.resolve(parsedWarc.warcTargetURI,jq);
                     gclassResolver.publish(dbConnection,unresolved);
-                case Panel | Hooks:
+                case Panel:
+                   var unresolved = panelResolver.resolve(parsedWarc.warcTargetURI,jq);
+                   panelResolver.publish(dbConnection,unresolved);
+                case Hooks:
                     Promise.NOISE;
+
             }
         });
     }

@@ -13,6 +13,7 @@ import generators.desc.DescriptionParser;
 import generators.standard.UnresolvedFunctionParse;
 import generators.standard.UnresolvedFunctionRetParse;
 import generators.standard.UnresolvedFunctionArgParse;
+import generators.panel.PanelResolver;
 import generators.desc.DescriptionPublisher;
 import cheerio.lib.cheerio.Cheerio;
 import generators.desc.DescSelector;
@@ -73,7 +74,9 @@ class Main {
             db.Library.create(true),
             db.GEnum.create(true),
             db.GEnumMembers.create(true),
-            db.GClassURL.create(true)
+            db.GClassURL.create(true),
+            db.Panel.create(true),
+            db.PanelURL.create(true)
             // db.Link_ResolvedTypes.create(true)
         ];
         return Promise.inParallel(databasePromises);
@@ -141,7 +144,8 @@ class Main {
                 new DescriptionPublisherDef()
             );
             #if !test
-            var parse = new ContentParserDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef());
+            var parse = new ContentParserDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef(),
+            new PanelResolverDef(descParser,new DescriptionPublisherDef()));
             parseWorker(warc,parse).handle((outcome) -> {
                 switch (outcome) {
                     case Success(_):
@@ -155,7 +159,7 @@ class Main {
             #else
             var parse = new ContentParserTestDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef());
             parse.parseTest().handle(_ -> {
-                
+
             });
             #end
         });
