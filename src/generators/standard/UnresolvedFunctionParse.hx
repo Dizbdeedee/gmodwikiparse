@@ -36,7 +36,18 @@ class UnresolvedFunctionParseDef implements UnresolvedFunctionParse {
             case None:
                 [];
         }
-        // descriptionResolver.setParse(descNode);
+        var isInternal = switch(getOptCheer(jq,"div.internal")) {
+            case Some(_):
+                true;
+            case None:
+                false;
+        };
+        var isDeprecated = switch(getOptCheer(jq,"div.deprecated")) {
+            case Some(_):
+                true;
+            case None:
+                false;
+        }
         return {
             name: funcName,
             url: url,
@@ -44,7 +55,9 @@ class UnresolvedFunctionParseDef implements UnresolvedFunctionParse {
             isHook: isHook,
             stateClient: isClient,
             stateServer: isServer,
-            stateMenu: isMenu
+            stateMenu: isMenu,
+            isInternal: isInternal,
+            isDeprecated: isDeprecated
         };
     }
 }
@@ -58,6 +71,8 @@ typedef UnresolvedFunction = {
     var stateClient:Bool;
     var stateMenu:Bool;
     var stateServer:Bool;
+    var isInternal:Bool;
+    var isDeprecated:Bool;
 
 
 }

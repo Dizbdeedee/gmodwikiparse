@@ -74,3 +74,21 @@ function toBool(select:Option<Dynamic>) {
             false;
     }
 }
+
+function isPageInternal(jq:CheerioAPI) {
+    return switch(getOptCheer(jq,"div.internal")) {
+        case Some(_):
+            true;
+        case None:
+            false;
+    };
+}
+
+function isPageDeprecated(jq:CheerioAPI) {
+    return switch(getOptCheer(jq,"div.deprecated")) {
+        case Some(_):
+            true;
+        case None:
+            false;
+    };
+}

@@ -16,7 +16,9 @@ typedef UnresolvedPanelPage = {
     description : UnresolvedDescription,
     ?urls : Array<UnresolvedPanelUrl>,
     url : String,
-    parenturl : String
+    parenturl : String,
+    isDeprecated : Bool,
+    isInternal : Bool
 }
 typedef UnresolvedPanelUrl = {
     urlNo : Int, 
@@ -55,12 +57,16 @@ class PanelResolverDef implements PanelResolver {
             case None:
                 null;
         }
+        var isInternal = isPageInternal(jq);
+        var isDeprecated = isPageDeprecated(jq);
         return {
-            name : name,
-            description : desc,
-            url : url,
-            urls : urls,
-            parenturl : parentUrl
+            name: name,
+            description: desc,
+            url: url,
+            urls: urls,
+            parenturl: parentUrl,
+            isInternal: isInternal,
+            isDeprecated: isDeprecated
         };
     }
 
@@ -92,7 +98,9 @@ class PanelResolverDef implements PanelResolver {
                 description: pageDescID,
                 parentLink: page.parenturl,
                 url: page.url,
-                name: page.name
+                name: page.name,
+                isDeprecated: page.isDeprecated,
+                isInternal: page.isInternal
             })
         .next(panelID -> {
             if (page.urls == null) return Promise.NOISE;

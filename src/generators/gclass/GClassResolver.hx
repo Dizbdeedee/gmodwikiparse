@@ -13,10 +13,11 @@ interface GClassResolver {
 }
 
 typedef UnresolvedGClassPage = {
-    name : String,
-    description : UnresolvedDescription,
-    urls : Array<UnresolvedGClassURL>,
-    url : String
+    name: String,
+    description: UnresolvedDescription,
+    urls: Array<UnresolvedGClassURL>,
+    url: String,
+    isDeprecated: Bool
 
 }
 
@@ -42,17 +43,13 @@ class GClassResolverDef implements GClassResolver {
             urls.push(parseURL(cheerEl,jq,id++));
             return true;
         });
-        trace({
-            description: desc,
-            name : name,
-            urls : urls,
-            url : url
-        });
+        var isDeprecated = isPageDeprecated(jq);
         return {
             description: desc,
-            name : name,
-            urls : urls,
-            url : url
+            name: name,
+            urls: urls,
+            url: url,
+            isDeprecated: isDeprecated
         }
         
     }
@@ -72,7 +69,8 @@ class GClassResolverDef implements GClassResolver {
                 id: null,
                 description: descID,
                 url: page.url,
-                name: page.name
+                name: page.name,
+                isDeprecated: page.isDeprecated
             })
         .next((gclassID) -> {
             var urls = page.urls.map((url) -> 

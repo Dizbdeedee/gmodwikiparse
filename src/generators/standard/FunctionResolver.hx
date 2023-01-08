@@ -71,14 +71,16 @@ class FunctionResolverDef implements FunctionResolver {
     @:async function publishFunction(conn:data.WikiDB,x:UnresolvedFunction) {
         var descID = @:await publishDescOrNull(conn,x.description);
         return @:await conn.Function.insertOne({
-            id : null,
-            name : x.name,
-            url : x.url,
+            id: null,
+            name: x.name,
+            url: x.url,
             description: descID,
-            isHook : x.isHook,
-            stateClient : x.stateClient,
-            stateMenu : x.stateMenu,
-            stateServer : x.stateServer
+            isHook: x.isHook,
+            stateClient: x.stateClient,
+            stateMenu: x.stateMenu,
+            stateServer: x.stateServer,
+            isInternal: x.isInternal,
+            isDeprecated: x.isDeprecated
         });
     }
 

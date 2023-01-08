@@ -69,6 +69,8 @@ typedef Function = {
     var stateClient(default,never):Bool;
     var stateMenu(default,never):Bool;
     var stateServer(default,never):Bool;
+    var isDeprecated(default,never):Bool;
+    var isInternal(default,never):Bool;
 }
 
 typedef FunctionArg = {
@@ -87,13 +89,6 @@ typedef FunctionRet = {
     var type(default,never):VarChar<255>;
     var typeURL(default,never):VarChar<255>;
     var ?desc(default,never):Id<DescriptionStorage>;
-}
-
-typedef FunctionCreation = {
-    func : Function,
-    funcargs : Array<FunctionArg>,
-    funcrets : Array<FunctionRet>,
-    luaexamples : Array<LuaExample>
 }
 
 typedef LuaExample = {
@@ -133,6 +128,7 @@ typedef GClass = {
     var name(default,never):VarChar<255>;
     var url(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
+    var isDeprecated(default,never):Bool;
 }
 
 typedef GClassURL = {
@@ -147,6 +143,7 @@ typedef Library = {
     var name(default,never):VarChar<255>;
     var url(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
+    var isDeprecated(default,never):Bool;
 }
 
 typedef LibraryURL = {
@@ -176,6 +173,8 @@ typedef Panel = {
     var url(default,never):VarChar<1024>;
     var ?parentLink(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
+    var isDeprecated(default,never):Bool;
+    var isInternal(default,never):Bool;
 }
 
 typedef PanelURL = {
@@ -184,8 +183,6 @@ typedef PanelURL = {
     var url:VarChar<1024>;
 }
 
-
-
 //fieldinline?
 
 typedef GEnum = {
@@ -193,6 +190,7 @@ typedef GEnum = {
     @:primary var id(default,never):Id<GEnum>;
     var ?desc(default,never):Id<DescriptionStorage>;
     var url(default,never):VarChar<1024>;
+    var isDeprecated(default,never):Bool;
 }
 
 typedef GEnumMembers = {
@@ -201,16 +199,8 @@ typedef GEnumMembers = {
     var enumName(default,never):VarChar<255>;
     var ?desc(default,never):Id<DescriptionStorage>;
     var ?value(default,never):VarChar<255>;
+    var isDeprecated(default,never):Bool;
 }
-
-typedef GEnumCreation = {
-    genum:GEnum,
-    //Order of this array *should* hold no significance
-    memebers:Array<GEnumMembers>
-}
-
-
-
 
 //Lua linkage. All the things we can infer from links, and strings. Lua type inference goes here.
 

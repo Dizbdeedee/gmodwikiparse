@@ -14,6 +14,7 @@ import generators.standard.UnresolvedFunctionParse;
 import generators.standard.UnresolvedFunctionRetParse;
 import generators.standard.UnresolvedFunctionArgParse;
 import generators.panel.PanelResolver;
+import generators.struct.StructResolver;
 import generators.desc.DescriptionPublisher;
 import cheerio.lib.cheerio.Cheerio;
 import generators.desc.DescSelector;
@@ -70,6 +71,7 @@ class Main {
             db.FunctionRet.create(true),
             db.LuaExample.create(true),
             db.Struct.create(true),
+            db.StructMember.create(true),
             db.GClass.create(true),
             db.Library.create(true),
             db.GEnum.create(true),
@@ -145,7 +147,7 @@ class Main {
             );
             #if !test
             var parse = new ContentParserDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef(),
-            new PanelResolverDef(descParser,new DescriptionPublisherDef()));
+            new PanelResolverDef(descParser,new DescriptionPublisherDef()),new StructResolverDef(descParser,new DescriptionPublisherDef()));
             parseWorker(warc,parse).handle((outcome) -> {
                 switch (outcome) {
                     case Success(_):

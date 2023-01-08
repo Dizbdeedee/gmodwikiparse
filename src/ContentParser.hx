@@ -1,5 +1,6 @@
 package;
 
+import generators.struct.StructResolver;
 import generators.panel.PanelResolver;
 import haxe.Json;
 import js.node.Fs;
@@ -47,6 +48,8 @@ class ContentParserDef implements ContentParser {
 
     final panelResolver:PanelResolver;
 
+    final structResolver:StructResolver;
+
     final tests:Tests = {
         funcs : [],
         gclasses : []
@@ -54,13 +57,14 @@ class ContentParserDef implements ContentParser {
 
     public function new (_dbConnection,_descParser
         ,_funcResolver,_gclassResolver,_parseChooser,
-        _panelResolver) {
+        _panelResolver,_structResolver) {
         dbConnection = _dbConnection;
         descParser = _descParser;
         funcResolver = _funcResolver;
         gclassResolver = _gclassResolver;
         parseChooser = _parseChooser;
         panelResolver = _panelResolver;
+        structResolver = _structResolver;
     }
 
     public function parse(content:WARCResult):Promise<Noise> {
@@ -77,46 +81,47 @@ class ContentParserDef implements ContentParser {
         Fs.writeFileSync("tests.json",Json.stringify(tests));
     }
 
-    function loadHTML(parsedWarc:WARCResult) {
+    function loadHTML(parsedWarc:WARCResult):Promise<Noise> {
+        final url = parsedWarc.warcTargetURI;
         final jq = Cheerio.load(cast node.buffer.Buffer.from(parsedWarc.payload));
-        return processExceptions(parsedWarc.warcTargetURI,jq).next((processed) -> {
+        return processExceptions(url,jq).next((processed) -> {
             if (processed) return Promise.NOISE;
-            trace('URI ${parsedWarc.warcTargetURI}');
-            return switch (parseChooser.choose(jq,parsedWarc.warcTargetURI)) { 
+            trace('URI $url');
+            return switch (parseChooser.choose(jq,url)) { 
                 case NoMatch:
-                    trace('Unmatched ${parsedWarc.warcTargetURI}');
+                    trace('Unmatched $url');
                     Promise.NOISE;
                 case Function:
                     if (tests.funcs.length < 5) {
                         tests.funcs.push({
-                            uri: parsedWarc.warcTargetURI,
+                            uri: url,
                             buffer: node.buffer.Buffer.from(parsedWarc.payload).toString()
                         });
                         updateOutputTests();
                     }
-                    var unresolved = funcResolver.resolve(parsedWarc.warcTargetURI,jq);
+                    var unresolved = funcResolver.resolve(url,jq);
                     // trace(unresolved);
                     
                     funcResolver.publish(dbConnection,unresolved);
 
                 case Enum:
-                    // Promise.resolve(parseEnum(parsedWarc.warcTargetURI,jq));
+                    // Promise.resolve(parseEnum(url,jq));
                     Promise.NOISE;
                 case Struct:
-                    // Promise.resolve(parseStruct(parsedWarc.warcTargetURI,jq));
+                    structResolver.parse(url,jq);
                     Promise.NOISE;
                 case GClass:
                     if (tests.gclasses.length < 5) {
                         tests.gclasses.push({
-                            uri: parsedWarc.warcTargetURI,
+                            uri: url,
                             buffer: node.buffer.Buffer.from(parsedWarc.payload).toString()
                         });
                         updateOutputTests();
                     }
-                    var unresolved = gclassResolver.resolve(parsedWarc.warcTargetURI,jq);
+                    var unresolved = gclassResolver.resolve(url,jq);
                     gclassResolver.publish(dbConnection,unresolved);
                 case Panel:
-                   var unresolved = panelResolver.resolve(parsedWarc.warcTargetURI,jq);
+                   var unresolved = panelResolver.resolve(url,jq);
                    panelResolver.publish(dbConnection,unresolved);
                 case Hooks:
                     Promise.NOISE;
@@ -129,7 +134,7 @@ class ContentParserDef implements ContentParser {
         return switch url {
             case "https://wiki.facepunch.com/gmod/Enums/STENCIL":
                 trace("Stencil!");
-                // parseEnum(parsedWarc.warcTargetURI,jq).next(parsedWarc.warcTargetURI);
+                // parseEnum(url,jq).next(url);
                 Promise.resolve(true);
             case "https://wiki.facepunch.com/gmod/PLAYER_Hooks":
                 trace("Player Hooks hooks...");
