@@ -66,7 +66,7 @@ typedef Function = {
     var url(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
     var isHook(default,never):Bool;
-    var stateClient(default,never):Bool;
+    var stateClient(default,never):Bool; //should be realm
     var stateMenu(default,never):Bool;
     var stateServer(default,never):Bool;
     var isDeprecated(default,never):Bool;
@@ -105,6 +105,9 @@ typedef Struct = {
     var name(default,never):VarChar<255>;
     var url(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
+    var realmServer(default,never):Bool;
+    var realmClient(default,never):Bool;
+    var realmMenu(default,never):Bool;
 }
 
 typedef StructMember = {
@@ -115,11 +118,6 @@ typedef StructMember = {
     var type(default,never):VarChar<255>;
     var typeURL(default,never):VarChar<1024>;
     var ?def(default,never):VarChar<255>;
-}
-
-typedef StructCreation = {
-    struct : Struct,
-    members : Array<StructMember>
 }
 
 typedef GClass = {
@@ -137,6 +135,14 @@ typedef GClassURL = {
     var url:VarChar<1024>;
 }
 
+typedef GClassField = {
+    var fieldNo(default,never):SmallInt;
+    var gclassID(default,never):Id<GClass>;
+    var typeURL(default,never):VarChar<255>;
+    var type(default,never):VarChar<255>;
+    var description:Id<DescriptionStorage>;
+}
+
 typedef Library = {
     @:autoIncrement
     @:primary var id(default,never):Id<Library>;
@@ -150,6 +156,15 @@ typedef LibraryURL = {
     var urlNo(default,never):SmallInt;
     var libraryID(default,never):Id<Library>;
     var url:VarChar<1024>;
+}
+
+typedef LibraryField = {
+    var fieldNo(default,never):SmallInt;
+    var name(default,never):VarChar<255>;
+    var libraryID(default,never):Id<Library>;
+    var type(default,never):VarChar<255>;
+    var typeURL(default,never):VarChar<255>;
+    var description(default,never):Id<DescriptionStorage>;
 }
 
 typedef HookClass = {
@@ -191,6 +206,9 @@ typedef GEnum = {
     var ?desc(default,never):Id<DescriptionStorage>;
     var url(default,never):VarChar<1024>;
     var isDeprecated(default,never):Bool;
+    var realmServer(default,never):Bool;
+    var realmClient(default,never):Bool;
+    var realmMenu(default,never):Bool;
 }
 
 typedef GEnumMembers = {
@@ -199,7 +217,6 @@ typedef GEnumMembers = {
     var enumName(default,never):VarChar<255>;
     var ?desc(default,never):Id<DescriptionStorage>;
     var ?value(default,never):VarChar<255>;
-    var isDeprecated(default,never):Bool;
 }
 
 //Lua linkage. All the things we can infer from links, and strings. Lua type inference goes here.
@@ -244,6 +261,7 @@ typedef Link_StructMemberResolve = {
 
 @:tables(DescItem,DescriptionStorage,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers,
     GClassURL,Panel,PanelURL,
+    LibraryField,LibraryURL,
     Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,Link_ResolvedTypes,Link_FunctionArgTypeResolve,Link_FunctionRetTypeResolve,Link_StructMemberResolve)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;

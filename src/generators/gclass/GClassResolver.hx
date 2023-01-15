@@ -30,9 +30,7 @@ class GClassResolverDef implements GClassResolver {
     }
 
     public function resolve(url:String,jq:CheerioAPI):UnresolvedGClassPage {
-        var regex = ~/gmod\/(.*)/;
-        regex.match(url);
-        var name = regex.matched(1);
+        var name = getPageName(url);
         var pageContent = getCheer(jq,"div.type > div.section");
         var desc = descParser.parseDescNode(pageContent,jq);
         var urlsNode = getCheer(jq,"div.members > h1:contains('Methods') ~ div.section");

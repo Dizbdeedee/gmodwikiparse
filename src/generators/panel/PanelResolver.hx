@@ -37,9 +37,7 @@ class PanelResolverDef implements PanelResolver {
     }
 
     public function resolve(url:String,jq:CheerioAPI):UnresolvedPanelPage {
-        var regex = ~/gmod\/(.*)/;
-        regex.match(url);
-        var name = regex.matched(1);
+        var name = getPageName(url);
 
         var pageContent = getCheer(jq,"div.description_section");
         var desc = descParser.parseDescNode(pageContent,jq);

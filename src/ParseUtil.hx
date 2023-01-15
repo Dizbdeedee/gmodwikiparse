@@ -30,7 +30,25 @@ function getOptCheer(jq:CheerioAPI,select:String):Option<Cheerio<Dynamic>> {
 
 function getChildCheer(node:Cheerio<Dynamic>,select:String):Cheerio<Dynamic> {
     var cheer = node.children(select);
-    verifySelector(cheer);
+    try {
+        verifySelector(cheer);
+
+    } catch (e) {
+        trace(select);
+        throw e;
+    }
+    return cheer;
+}
+
+function getChildCheerTraverse(node:Cheerio<Dynamic>,select:String):Cheerio<Dynamic> {
+    var cheer = node.find(select);
+    try {
+        verifySelector(cheer);
+
+    } catch (e) {
+        trace(select);
+        throw e;
+    }
     return cheer;
 }
 
@@ -76,19 +94,25 @@ function toBool(select:Option<Dynamic>) {
 }
 
 function isPageInternal(jq:CheerioAPI) {
-    return switch(getOptCheer(jq,"div.internal")) {
-        case Some(_):
-            true;
-        case None:
-            false;
-    };
+    return jq.call("div.internal").length > 0;
 }
 
 function isPageDeprecated(jq:CheerioAPI) {
-    return switch(getOptCheer(jq,"div.deprecated")) {
-        case Some(_):
-            true;
-        case None:
-            false;
-    };
+    return jq.call("div.deprecated").length > 0;
+}
+
+function getPageName(url:String) {
+    var regex = ~/gmod\/(.*)/;
+    regex.match(url);
+    return regex.matched(1);
+}
+
+function mapChildren<T>(node:CheerioD,jq:CheerioAPI,map:(node:CheerioD) -> T):Array<T> {
+    var arr = [];
+    node.children().each((_,el) -> {
+        var cheerEl = jq.call(el);
+        arr.push(map(node));
+        return true;
+    });
+    return arr;
 }

@@ -15,8 +15,10 @@ typedef UnresolvedStructPage = {
     name : String,
     url : String,
     fields : Array<UnresolvedStructField>,
-    description : UnresolvedDescription
-
+    description : UnresolvedDescription,
+    realmClient : Bool,
+    realmMenu : Bool,
+    realmServer : Bool
 }
 
 typedef UnresolvedStructField = {
@@ -25,7 +27,7 @@ typedef UnresolvedStructField = {
     typeUrl : String,
     type : String,
     description : UnresolvedDescription,
-    def : String
+    ?def : String,
 }
 
 class StructResolverDef implements StructResolver {
@@ -46,7 +48,7 @@ class StructResolverDef implements StructResolver {
         var name = regex.matched(1);
         var descContent = getCheer(jq,"div.struct_description");
         var desc = descParser.parseDescNode(descContent,jq);
-        var fieldsNodes = getCheer(jq,"div.struct").children("div.parameter");
+        var fieldsNodes = getCheer(jq,"div.struct").find("div.parameter");
         var fields = [];
         var id = 0;
         fieldsNodes.each((_,el) -> {
@@ -54,42 +56,25 @@ class StructResolverDef implements StructResolver {
             fields.push(parseParameter(cheerEl,jq,id++));
         });
 
+        var sidebar = getCheer(jq,"a.struct.active");
+        var realmServer = sidebar.hasClass("rs");
+        var realmClient = sidebar.hasClass("rc");
+        var realmMenu = sidebar.hasClass("rm");
         return {
             name: name,
             description: desc,
             fields: fields,
-            url: url  
+            url: url,
+            realmServer: realmServer,
+            realmClient: realmClient,
+            realmMenu: realmMenu
         }
-
-        // var pageContent = getCheer(jq,"div.type > div.section");
-        // var desc = descParser.parseDescNode(pageContent,jq);
-        // var urlsNode = getCheer(jq,"div.members > h1:contains('Methods') ~ div.section");
-        // var id = 0;
-        // var urls:Array<UnresolvedGClassURL> = [];
-        // urlsNode.children().each((_,el) -> {
-        //     var cheerEl = jq.call(el);
-        //     urls.push(parseURL(cheerEl,jq,id++));
-        //     return true;
-        // });
-        // trace({
-        //     description: desc,
-        //     name : name,
-        //     urls : urls,
-        //     url : url
-        // });
-        // return {
-        //     description: desc,
-        //     name : name,
-        //     urls : urls,
-        //     url : url
-        // }
-        
     }
 
     function parseParameter(node:CheerioD,jq:CheerioAPI,no:Int):UnresolvedStructField {
-        var name = getChildCheer(node,"p > strong").text();
-        var typeUrl = getChildCheer(node,"p:has(strong) > a").attr("href");
-        var type = getChildCheer(node,"p:has(strong) > a").text();
+        var name = getChildCheerTraverse(node,"strong").text();
+        var typeUrl = getChildCheer(node,"a").attr("href");
+        var type = getChildCheer(node,"a").text();
         var descNode = getChildCheer(node,"div.description");
         var desc = descParser.parseDescNode(descNode,jq);
         var def = getChildOptCheer(node,"div.description > p:has(code)");
@@ -106,25 +91,38 @@ class StructResolverDef implements StructResolver {
     }
 
     public function publish(conn:data.WikiDB,page:UnresolvedStructPage):Promise<Noise> {
-        return Promise.NOISE;
-        // return descPublisher.publish(conn,page.description)
-        // .next((descID) -> 
-        //     conn.GClass.insertOne({
-        //         id: null,
-        //         description: descID,
-        //         url: page.url,
-        //         name: page.name
-        //     })
-        // .next((gclassID) -> {
-        //     var urls = page.urls.map((url) -> 
-        //         Promise.lazy(conn.GClassURL.insertOne({
-        //             urlNo: url.urlNo,
-        //             url: url.url,
-        //             gclassID: gclassID
-        //         }))
-        //     );
-        //     return Promise.inSequence(urls).noise();
-        // }));
+        return descPublisher.publish(conn,page.description)
+        .next(descID -> {
+            conn.Struct.insertOne({
+                id: null,
+                description: descID,
+                url: page.url,
+                name: page.name,
+                realmServer: page.realmServer,
+                realmMenu: page.realmMenu,
+                realmClient: page.realmClient
+            })
+        .next(structID -> {
+            var publishFields = [for (field in page.fields) pageFields(conn,structID,field)];
+            return Promise.inSequence(publishFields);
+        });
+        });
+    }
+
+    function pageFields(conn:data.WikiDB,structID:Int,field:UnresolvedStructField) {
+        return Promise.lazy(() -> {
+            descPublisher.publish(conn,field.description);
+        })
+        .next(fieldDescID -> {
+            conn.StructMember.insertOne({
+                structOrder: field.fieldNo,
+                def: field.def,
+                typeURL: field.typeUrl,
+                type: field.type,
+                name: field.name,
+                structID: structID
+            });
+        });
     }
 
 }

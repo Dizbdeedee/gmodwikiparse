@@ -13,6 +13,8 @@ import generators.desc.DescriptionParser;
 import generators.standard.UnresolvedFunctionParse;
 import generators.standard.UnresolvedFunctionRetParse;
 import generators.standard.UnresolvedFunctionArgParse;
+import generators.genum.GEnumResolver;
+import generators.library.LibraryResolver;
 import generators.panel.PanelResolver;
 import generators.struct.StructResolver;
 import generators.desc.DescriptionPublisher;
@@ -145,9 +147,17 @@ class Main {
                 new UnresolvedFunctionRetParseDef(descParser),
                 new DescriptionPublisherDef()
             );
+            var gclass = new GClassResolverDef(descParser,new DescriptionPublisherDef());
+            var parseChooser = new ParseChooserDef();
+            var panel = new PanelResolverDef(descParser,new DescriptionPublisherDef());
+            var struct = new StructResolverDef(descParser,new DescriptionPublisherDef());
+            var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
+            var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
+            
             #if !test
-            var parse = new ContentParserDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef(),
-            new PanelResolverDef(descParser,new DescriptionPublisherDef()),new StructResolverDef(descParser,new DescriptionPublisherDef()));
+            var parse = new ContentParserDef(db,descParser,funcResolver,gclass,parseChooser,
+            panel,struct,
+            genum,library);
             parseWorker(warc,parse).handle((outcome) -> {
                 switch (outcome) {
                     case Success(_):
@@ -159,7 +169,9 @@ class Main {
                 }
             });
             #else
-            var parse = new ContentParserTestDef(db,descParser,funcResolver,new GClassResolverDef(descParser,new DescriptionPublisherDef()),new ParseChooserDef());
+            var parse = new ContentParserTestDef(db,descParser,funcResolver,gclass,
+            parseChooser,panel,struct,
+            genum,library);
             parse.parseTest().handle(_ -> {
 
             });

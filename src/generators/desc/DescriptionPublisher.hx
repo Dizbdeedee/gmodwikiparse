@@ -106,7 +106,7 @@ class DescriptionPublisherDef implements DescriptionPublisher {
 	function publishDescToDB(arr:Array<DescItem>):Promise<Id<DescriptionStorage>> {
 		return getMaxID()
 		.next((maxID) -> giveDescItemsIDs(arr,maxID)
-		.next((descItemIDS) -> createDescriptionStorages(descItemIDS)
-		.next((idDescStorage) -> idDescStorage)));
+		.next((descItemIDS) -> createDescriptionStorages(descItemIDS)));
+		// .next((idDescStorage) -> idDescStorage)));
 	}
 }

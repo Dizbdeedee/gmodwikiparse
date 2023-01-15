@@ -8,6 +8,8 @@ import generators.gclass.GClassResolver;
 import warcio.WARCResult;
 import generators.desc.DescriptionParser;
 import generators.standard.FunctionResolver;
+import generators.library.LibraryResolver;
+import generators.genum.GEnumResolver;
 import ParseUtil;
 using tink.CoreApi;
 
@@ -23,7 +25,12 @@ interface ContentParser {
 
 typedef Tests = {
     funcs : Array<SavedResult>,
-    gclasses : Array<SavedResult>
+    gclasses : Array<SavedResult>,
+    struct : Array<SavedResult>,
+    panels : Array<SavedResult>,
+    libs : Array<SavedResult>,
+    genums : Array<SavedResult>,
+    hooks : Array<SavedResult>
 }
 
 typedef SavedResult = {
@@ -50,14 +57,23 @@ class ContentParserDef implements ContentParser {
 
     final structResolver:StructResolver;
 
+    final enumResolver:GEnumResolver;
+    
+    final libraryResolver:LibraryResolver;
+
     final tests:Tests = {
-        funcs : [],
-        gclasses : []
+        funcs: [],
+        gclasses: [],
+        panels: [],
+        struct: [],
+        libs: [],
+        genums: []
     }
 
     public function new (_dbConnection,_descParser
         ,_funcResolver,_gclassResolver,_parseChooser,
-        _panelResolver,_structResolver) {
+        _panelResolver,_structResolver,
+        _enumResolver,_libraryResolver) {
         dbConnection = _dbConnection;
         descParser = _descParser;
         funcResolver = _funcResolver;
@@ -65,6 +81,8 @@ class ContentParserDef implements ContentParser {
         parseChooser = _parseChooser;
         panelResolver = _panelResolver;
         structResolver = _structResolver;
+        enumResolver = _enumResolver;
+        libraryResolver = _libraryResolver;
     }
 
     public function parse(content:WARCResult):Promise<Noise> {
@@ -83,7 +101,8 @@ class ContentParserDef implements ContentParser {
 
     function loadHTML(parsedWarc:WARCResult):Promise<Noise> {
         final url = parsedWarc.warcTargetURI;
-        final jq = Cheerio.load(cast node.buffer.Buffer.from(parsedWarc.payload));
+        final buf = cast node.buffer.Buffer.from(parsedWarc.payload);
+        final jq = Cheerio.load(buf);
         return processExceptions(url,jq).next((processed) -> {
             if (processed) return Promise.NOISE;
             trace('URI $url');
@@ -92,42 +111,44 @@ class ContentParserDef implements ContentParser {
                     trace('Unmatched $url');
                     Promise.NOISE;
                 case Function:
-                    if (tests.funcs.length < 5) {
-                        tests.funcs.push({
-                            uri: url,
-                            buffer: node.buffer.Buffer.from(parsedWarc.payload).toString()
-                        });
-                        updateOutputTests();
-                    }
+                    updateTest(tests.funcs,url,buf);
                     var unresolved = funcResolver.resolve(url,jq);
-                    // trace(unresolved);
-                    
                     funcResolver.publish(dbConnection,unresolved);
-
                 case Enum:
-                    // Promise.resolve(parseEnum(url,jq));
-                    Promise.NOISE;
+                    updateTest(tests.genums,url,buf);
+                    var unresolved = enumResolver.parse(jq,url);
+                    enumResolver.publish(dbConnection,unresolved);
                 case Struct:
-                    structResolver.parse(url,jq);
-                    Promise.NOISE;
+                    updateTest(tests.struct,url,buf);
+                    var unresolved = structResolver.parse(url,jq);
+                    structResolver.publish(dbConnection,unresolved);
                 case GClass:
-                    if (tests.gclasses.length < 5) {
-                        tests.gclasses.push({
-                            uri: url,
-                            buffer: node.buffer.Buffer.from(parsedWarc.payload).toString()
-                        });
-                        updateOutputTests();
-                    }
+                    updateTest(tests.gclasses,url,buf);
                     var unresolved = gclassResolver.resolve(url,jq);
                     gclassResolver.publish(dbConnection,unresolved);
                 case Panel:
-                   var unresolved = panelResolver.resolve(url,jq);
-                   panelResolver.publish(dbConnection,unresolved);
+                    updateTest(tests.panels,url,buf);
+                    var unresolved = panelResolver.resolve(url,jq);
+                    panelResolver.publish(dbConnection,unresolved);
+                case Library:
+                    updateTest(tests.libs,url,buf);
+                    var unresolved = libraryResolver.parse(jq,url);
+                    libraryResolver.publish(dbConnection,unresolved);
                 case Hooks:
                     Promise.NOISE;
 
             }
         });
+    }
+
+    function updateTest(arr:Array<SavedResult>,url:String,buf:String) {
+        if (arr.length < 5) {
+            arr.push({
+                uri: url,
+                buffer: buf
+            });
+            updateOutputTests();
+        }
     }
 
     function processExceptions(url:String,jq:CheerioAPI):tink.core.Promise<Bool> {

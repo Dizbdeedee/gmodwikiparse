@@ -5,6 +5,5 @@
 --library tink_sql
 --library hxnodejs
 --library tink_await
--cp externs
 -dce full
 --js staging/gmodwiki.js
