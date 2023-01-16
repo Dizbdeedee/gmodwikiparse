@@ -1,6 +1,11 @@
 Build:
-lib dts2hx
-node_modules, npm
-gmodwiki.warc, see heritrix
-WIP ect. ect.
-will feed into gmodhaxe
+if you have global haxe version installed a global lix installation will not work at least on windows
+see installation of lix blah blah
+Build output: gmodwiki.js. Maybe haxe part too? Depends
+
+Staging aka generating information from the wiki:
+Stage 1: Make or aquire gmodwiki.warc.gz. TODO generate heretix job.
+Stage 2: Run (node) gmodwiki.js in a staging folder (the project one should be enough). This will generate wikidb.sqlite
+Stage 2.5: Read the documentation that I'll make on the table structure if there's any intrest
+Stage 3: Haxe stuff. Makes the haxe stuff. TODO the haxe stuff
+Stage 4: Horrah

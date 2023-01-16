@@ -14,12 +14,14 @@ interface HookResolver {
 typedef UnresolvedHook {
     name : String,
     description : UnresolvedDescription,
+    url : String,
+    urls : Array<UnresolvedHookURL>
 
 }
 
 typedef UnresolvedHookURL {
-    url : String,
-    
+    urlNo : Int,
+    url : String
 }
 
 
@@ -35,6 +37,7 @@ class HookResolverDef implements HookResolver {
     }
 
     public function parse(url:String,jq:CheerioAPI):UnresolvedHookPage {
+        var name = getPageName
         return {
             name : null,
             description : null
