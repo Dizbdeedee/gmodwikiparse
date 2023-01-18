@@ -1,5 +1,9 @@
 package;
 
+import generators.hook.HookResolver;
+import node.util.TextDecoder;
+import js.node.util.TextEncoder;
+import js.node.StringDecoder;
 import generators.struct.StructResolver;
 import generators.panel.PanelResolver;
 import haxe.Json;
@@ -41,10 +45,6 @@ typedef SavedResult = {
 @:await
 class ContentParserDef implements ContentParser {
 
-    // var jq:CheerioAPI;
-
-    final descParser:DescriptionParser;
-
     final dbConnection:data.WikiDB;
 
     final funcResolver:FunctionResolver;
@@ -61,28 +61,28 @@ class ContentParserDef implements ContentParser {
     
     final libraryResolver:LibraryResolver;
 
+    final hookResolver:HookResolver;
+
     final tests:Tests = {
         funcs: [],
         gclasses: [],
         panels: [],
         struct: [],
         libs: [],
-        genums: []
+        genums: [],
+        hooks: []
     }
 
-    public function new (_dbConnection,_descParser
-        ,_funcResolver,_gclassResolver,_parseChooser,
-        _panelResolver,_structResolver,
-        _enumResolver,_libraryResolver) {
+    public function new (_dbConnection:data.WikiDB,_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
         dbConnection = _dbConnection;
-        descParser = _descParser;
-        funcResolver = _funcResolver;
-        gclassResolver = _gclassResolver;
         parseChooser = _parseChooser;
-        panelResolver = _panelResolver;
-        structResolver = _structResolver;
-        enumResolver = _enumResolver;
-        libraryResolver = _libraryResolver;
+        funcResolver = initBundle._funcResolver;
+        gclassResolver = initBundle._gclassResolver;
+        panelResolver = initBundle._panelResolver;
+        structResolver = initBundle._structResolver;
+        enumResolver = initBundle._enumResolver;
+        libraryResolver = initBundle._libraryResolver;
+        hookResolver = initBundle._hookResolver;
     }
 
     public function parse(content:WARCResult):Promise<Noise> {
@@ -99,9 +99,13 @@ class ContentParserDef implements ContentParser {
         Fs.writeFileSync("tests.json",Json.stringify(tests));
     }
 
+    static final decoder:TextDecoder = new TextDecoder();
+
     function loadHTML(parsedWarc:WARCResult):Promise<Noise> {
         final url = parsedWarc.warcTargetURI;
-        final buf = cast node.buffer.Buffer.from(parsedWarc.payload);
+        // trace(parsedWarc.payload);
+        final buf = decoder.decode(parsedWarc.payload);
+        // var doc = Htmlparser2.parseDocument(buf);
         final jq = Cheerio.load(buf);
         return processExceptions(url,jq).next((processed) -> {
             if (processed) return Promise.NOISE;
@@ -113,29 +117,60 @@ class ContentParserDef implements ContentParser {
                 case Function:
                     updateTest(tests.funcs,url,buf);
                     var unresolved = funcResolver.resolve(url,jq);
+                    #if nodb
+                    Promise.NOISE;
+                    #else
                     funcResolver.publish(dbConnection,unresolved);
+                    #end
                 case Enum:
                     updateTest(tests.genums,url,buf);
-                    var unresolved = enumResolver.parse(jq,url);
+                    var unresolved = enumResolver.parse(url,jq);
+                    #if nodb
+                    Promise.NOISE;
+                    #else
                     enumResolver.publish(dbConnection,unresolved);
+                    #end
+                    
                 case Struct:
                     updateTest(tests.struct,url,buf);
                     var unresolved = structResolver.parse(url,jq);
+                    #if nodb
+                    Promise.NOISE;
+                    #else
                     structResolver.publish(dbConnection,unresolved);
+                    #end
                 case GClass:
                     updateTest(tests.gclasses,url,buf);
                     var unresolved = gclassResolver.resolve(url,jq);
+                    #if nodb
+                    Promise.NOISE;
+                    #else
                     gclassResolver.publish(dbConnection,unresolved);
+                    #end
                 case Panel:
                     updateTest(tests.panels,url,buf);
                     var unresolved = panelResolver.resolve(url,jq);
+                    #if nodb
+                    Promise.NOISE;
+                    #else
                     panelResolver.publish(dbConnection,unresolved);
+                    #end   
                 case Library:
                     updateTest(tests.libs,url,buf);
-                    var unresolved = libraryResolver.parse(jq,url);
-                    libraryResolver.publish(dbConnection,unresolved);
-                case Hooks:
+                    var unresolved = libraryResolver.parse(url,jq);
+                    #if nodb
                     Promise.NOISE;
+                    #else
+                    libraryResolver.publish(dbConnection,unresolved);
+                    #end
+                case Hooks:
+                    updateTest(tests.hooks,url,buf);
+                    var unresolved = hookResolver.parse(url,jq);
+                    #if nodb
+                    Promise.NOISE;
+                    #else
+                    hookResolver.publish(dbConnection,unresolved);
+                    #end
 
             }
         });
@@ -159,6 +194,9 @@ class ContentParserDef implements ContentParser {
                 Promise.resolve(true);
             case "https://wiki.facepunch.com/gmod/PLAYER_Hooks":
                 trace("Player Hooks hooks...");
+                Promise.resolve(true);
+            case "https://wiki.facepunch.com/gmod/SKIN_Hooks":
+                trace("Skin hooks hooks");
                 Promise.resolve(true);
             default:
                 Promise.resolve(false);

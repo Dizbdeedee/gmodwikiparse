@@ -111,7 +111,7 @@ function mapChildren<T>(node:CheerioD,jq:CheerioAPI,map:(node:CheerioD) -> T):Ar
     var arr = [];
     node.children().each((_,el) -> {
         var cheerEl = jq.call(el);
-        arr.push(map(node));
+        arr.push(map(cheerEl));
         return true;
     });
     return arr;

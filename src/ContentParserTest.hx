@@ -1,6 +1,9 @@
 
+import generators.library.LibraryResolver;
 import generators.struct.StructResolver;
 import generators.panel.PanelResolver;
+import generators.hook.HookResolver;
+import generators.genum.GEnumResolver;
 import ContentParser.SavedResult;
 import ContentParser.Tests;
 import haxe.Json;
@@ -18,8 +21,6 @@ interface ContentParserTest {
 
 class ContentParserTestDef implements ContentParserTest {
 
-    final descParser:DescriptionParser;
-
     final dbConnection:data.WikiDB;
 
     final funcResolver:FunctionResolver;
@@ -33,21 +34,21 @@ class ContentParserTestDef implements ContentParserTest {
     final structResolver:StructResolver;
 
     final genumResolver:GEnumResolver;
+
+    final hookResolver:HookResolver;
+
+    final libraryResolver:LibraryResolver;
     
-    public function new (_dbConnection:data.WikiDB,_descParser
-        ,_funcResolver,_gclassResolver,_parseChooser,
-        _panelResolver,_structResolver,_hookResolver,
-        _libraryResolver,_genumResolver) {
+    public function new (_dbConnection:data.WikiDB,_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
         dbConnection = _dbConnection;
-        descParser = _descParser;
-        funcResolver = _funcResolver;
-        gclassResolver = _gclassResolver;
         parseChooser = _parseChooser;
-        panelResolver = _panelResolver;
-        structResolver = _structResolver;
-        hookResolver = _hookResolver;
-        libraryResolver = _libraryResolver;
-        genumResolver = _genumResolver;
+        funcResolver = initBundle._funcResolver;
+        gclassResolver = initBundle._gclassResolver;
+        panelResolver = initBundle._panelResolver;
+        structResolver = initBundle._structResolver;
+        hookResolver = initBundle._hookResolver;
+        libraryResolver = initBundle._libraryResolver;
+        genumResolver = initBundle._enumResolver;
     }
 
     public function parseTest():Promise<Noise> {
@@ -69,7 +70,7 @@ class ContentParserTestDef implements ContentParserTest {
             arr.push(Promise.lazy(() -> loadHTMLTest(panel)));
         }
         for (libs in json.libs) {
-            arr.push(PRomise.lazy(() -> loadHTMLTest(libs)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(libs)));
         }
         for (genum in json.genums) {
             arr.push(Promise.lazy(() -> loadHTMLTest(genum)));
@@ -82,22 +83,25 @@ class ContentParserTestDef implements ContentParserTest {
     }
 
     function loadHTMLTest(saved:SavedResult):Promise<Noise> {
+        trace(saved.uri);
         final jq = Cheerio.load(saved.buffer);
         return processExceptions(saved.uri,jq).next((processed) -> {
             if (processed) return Promise.resolve(Noise);
-            trace(saved.uri);
+            // trace(jq);
             return switch (parseChooser.choose(jq,saved.uri)) {
                 case NoMatch:
+                    trace(saved.uri);
                     Promise.resolve(Noise);
                 case Function:
                     var unresolved = funcResolver.resolve(saved.uri,jq);
                     // trace(unresolved);
                     funcResolver.publish(dbConnection,unresolved);
                 case Enum:
-                    var unresolved = genumResolver.resolve(saved.uri,jq);
-                    genumresolver.publish(dbConnection,unresolved);
+                    var unresolved = genumResolver.parse(saved.uri,jq);
+                    genumResolver.publish(dbConnection,unresolved);
                 case Struct:
                     var unresolved = structResolver.parse(saved.uri,jq);
+                    trace(unresolved);
                     structResolver.publish(dbConnection,unresolved);
                 case GClass:
                     var unresolved = gclassResolver.resolve(saved.uri,jq);
@@ -106,10 +110,10 @@ class ContentParserTestDef implements ContentParserTest {
                     var unresolved = panelResolver.resolve(saved.uri,jq);
                     panelResolver.publish(dbConnection,unresolved);
                 case Hooks:
-                    var unresolved = hookResolver.resolve(saved.uri,jq);
+                    var unresolved = hookResolver.parse(saved.uri,jq);
                     hookResolver.publish(dbConnection,unresolved);
                 case Library:
-                    var unresolved = libraryResolver.resolve(saved.uri,jq);
+                    var unresolved = libraryResolver.parse(saved.uri,jq);
                     libraryResolver.publish(dbConnection,unresolved);
             }
         });

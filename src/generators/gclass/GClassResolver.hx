@@ -33,7 +33,7 @@ class GClassResolverDef implements GClassResolver {
         var name = getPageName(url);
         var pageContent = getCheer(jq,"div.type > div.section");
         var desc = descParser.parseDescNode(pageContent,jq);
-        var urlsNode = getCheer(jq,"div.members > h1:contains('Methods') ~ div.section");
+        var urlsNode = getCheer(jq,"div.members > h1:contains('Methods') + div.section");
         var id = 0;
         var urls:Array<UnresolvedGClassURL> = [];
         urlsNode.children().each((_,el) -> {

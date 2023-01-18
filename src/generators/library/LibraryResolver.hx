@@ -7,7 +7,7 @@ import ParseUtil;
 using tink.CoreApi;
 
 interface LibraryResolver {
-    function parse(jq:CheerioAPI,url:String):UnresolvedLibrary;
+    function parse(url:String,jq:CheerioAPI):UnresolvedLibrary;
     function publish(conn:data.WikiDB,page:UnresolvedLibrary):Promise<Noise>;
 }
 
@@ -44,7 +44,7 @@ class LibraryResolverDef implements LibraryResolver {
         descPublisher = _descPublisher;
     }
 
-    public function parse(jq:CheerioAPI,url:String):UnresolvedLibrary {
+    public function parse(url:String,jq:CheerioAPI):UnresolvedLibrary {
         var name = getPageName(url);
         var pageContent = getCheer(jq,"div.type > div.section");
         var desc = descParser.parseDescNode(pageContent,jq);
@@ -58,8 +58,6 @@ class LibraryResolverDef implements LibraryResolver {
         var fields:Array<UnresolvedLibraryField> = mapChildren(fieldsNode,jq,(el) -> 
             parseField(el,jq,id++)
         );
-
-        
         var isDeprecated = isPageDeprecated(jq);
         return {
             description: desc,
@@ -106,12 +104,12 @@ class LibraryResolverDef implements LibraryResolver {
             })
         .next((libraryID) -> {
             var urls = page.urls.map((url) -> 
-                libraryURLPublish(conn,libraryID,url)
+                libraryURLPublish(conn,libraryID,url).noise()
             );
             var fields = page.fields.map((field) ->
-                libraryFieldPublish(conn,libraryID,field)
+                libraryFieldPublish(conn,libraryID,field).noise()
             );
-            return Promise.inSequence(urls).noise();
+            return Promise.inSequence(urls.concat(fields)).noise();
         }));
     }
 

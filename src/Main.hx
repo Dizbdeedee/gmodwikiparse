@@ -21,6 +21,7 @@ import generators.desc.DescriptionPublisher;
 import cheerio.lib.cheerio.Cheerio;
 import generators.desc.DescSelector;
 import cheerio.lib.load.CheerioAPI;
+import generators.hook.HookResolver;
 import ContentParser;
 import ContentParserTest;
 import ParseChooser;
@@ -107,7 +108,7 @@ class Main {
         var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
         var db = new WikiDB("wiki_db",driver);
         createDBs(db).handle(_ -> {
-            var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc.gz"));
+            var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc"));
             var descParserLZ = new DescriptionParserLazy();
             var descParser = new DescriptionParserDef(
             [
@@ -141,7 +142,7 @@ class Main {
                 new BoldSelector()
             ]);
             descParserLZ.resolve(descParser);
-            var funcResolver = new FunctionResolverDef(
+            var func = new FunctionResolverDef(
                 new UnresolvedFunctionParseDef(descParser),
                 new UnresolvedFunctionArgParseDef(descParser),
                 new UnresolvedFunctionRetParseDef(descParser),
@@ -153,11 +154,19 @@ class Main {
             var struct = new StructResolverDef(descParser,new DescriptionPublisherDef());
             var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
             var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
+            var hook = new HookResolverDef(descParser,new DescriptionPublisherDef());
             
             #if !test
-            var parse = new ContentParserDef(db,descParser,funcResolver,gclass,parseChooser,
-            panel,struct,
-            genum,library);
+            var parse = new ContentParserDef(db,parseChooser,
+            {
+                _panelResolver: panel,
+                _structResolver: struct,
+                _enumResolver: genum,
+                _gclassResolver: gclass,
+                _libraryResolver: library,
+                _funcResolver: func,
+                _hookResolver: hook
+            });
             parseWorker(warc,parse).handle((outcome) -> {
                 switch (outcome) {
                     case Success(_):
@@ -169,9 +178,15 @@ class Main {
                 }
             });
             #else
-            var parse = new ContentParserTestDef(db,descParser,funcResolver,gclass,
-            parseChooser,panel,struct,
-            genum,library);
+            var parse = new ContentParserTestDef(db,parseChooser,{
+                _panelResolver: panel,
+                _structResolver: struct,
+                _enumResolver: genum,
+                _gclassResolver: gclass,
+                _libraryResolver: library,
+                _funcResolver: func,
+                _hookResolver: hook
+            });
             parse.parseTest().handle(_ -> {
 
             });

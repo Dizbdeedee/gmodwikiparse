@@ -48,12 +48,15 @@ class StructResolverDef implements StructResolver {
         var name = regex.matched(1);
         var descContent = getCheer(jq,"div.struct_description");
         var desc = descParser.parseDescNode(descContent,jq);
-        var fieldsNodes = getCheer(jq,"div.struct").find("div.parameter");
+        // trace(getCheer(jq,"h1:contains('Parameters') + *"));
+        var fieldsNodes = jq.call("h1:contains('Parameters') ~ div.parameter");
+        // var fieldsNodes = getCheer(jq,"div.struct").find("div.parameter");
         var fields = [];
         var id = 0;
         fieldsNodes.each((_,el) -> {
             var cheerEl = jq.call(el);
             fields.push(parseParameter(cheerEl,jq,id++));
+            return true;
         });
 
         var sidebar = getCheer(jq,"a.struct.active");
@@ -72,9 +75,10 @@ class StructResolverDef implements StructResolver {
     }
 
     function parseParameter(node:CheerioD,jq:CheerioAPI,no:Int):UnresolvedStructField {
-        var name = getChildCheerTraverse(node,"strong").text();
-        var typeUrl = getChildCheer(node,"a").attr("href");
-        var type = getChildCheer(node,"a").text();
+        trace(node);
+        var name = getChildCheer(getChildCheer(node,"p"),"strong").text();
+        var typeUrl = getChildCheer(getChildCheer(node,"p"),"strong + a").attr("href");
+        var type = getChildCheer(getChildCheer(node,"p"),"strong + a").text();
         var descNode = getChildCheer(node,"div.description");
         var desc = descParser.parseDescNode(descNode,jq);
         var def = getChildOptCheer(node,"div.description > p:has(code)");

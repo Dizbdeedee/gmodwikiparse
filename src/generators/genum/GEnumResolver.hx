@@ -7,7 +7,7 @@ import ParseUtil;
 using tink.CoreApi;
 
 interface GEnumResolver {
-    function parse(jq:CheerioAPI,url:String):UnresolvedGEnum;
+    function parse(url:String,jq:CheerioAPI):UnresolvedGEnum;
     function publish(conn:data.WikiDB,page:UnresolvedGEnum):Promise<Noise>;
 }
 
@@ -41,7 +41,7 @@ class GEnumResolverDef implements GEnumResolver {
         descPublisher = _descPublisher;
     }
 
-    public function parse(jq:CheerioAPI,url:String):UnresolvedGEnum {
+    public function parse(url:String,jq:CheerioAPI):UnresolvedGEnum {
         var name = getPageName(url);
         var desc = descParser.parseDescNode(getCheer(jq,"div.function_description"),jq);
         var enums = parseGEnumMembers(jq,getCheer(jq,'h1:contains("Values") + table > tbody'));
