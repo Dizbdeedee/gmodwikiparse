@@ -1,0 +1,12 @@
+package gmod;
+
+@:native("_G")
+/**
+
+Global Gmod functions!
+
+**/
+extern class Gmod {
+::allPartialContent::
+}
+

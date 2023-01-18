@@ -1,0 +1,6 @@
+package gmod.structs;
+
+::comment::
+typedef ::name:: = {
+    ::allPartialContent::
+}

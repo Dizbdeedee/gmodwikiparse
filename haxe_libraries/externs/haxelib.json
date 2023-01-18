@@ -1,0 +1,11 @@
+{
+	"name": "gmodwikiparse-extern-dts2hx",
+	"description": "Auto generated externs",
+	"classPath": "lib",
+	"contributors": [
+		"Dizbdeedee"
+	],
+	"version": "0.0.0",
+	"releasenote": "Externs",
+	"license": "MIT"
+}

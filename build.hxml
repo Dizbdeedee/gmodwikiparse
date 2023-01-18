@@ -1,9 +1,9 @@
+-lib tink_sql
+-lib hxnodejs
+-lib tink_await
 -cp src
+-cp haxe_libraries/externs/lib
 -main Main
---library tink_sql
---library hxnodejs
---library tink_await
---library gmodwikiparse-externs-dts2hx
+-D error-stack
 -dce full
---js gmodwiki.js
-
+--js staging/gmodwiki.js
