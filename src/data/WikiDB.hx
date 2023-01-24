@@ -167,9 +167,9 @@ typedef LibraryField = {
     var description(default,never):Id<DescriptionStorage>;
 }
 
-typedef HookClass = {
+typedef Hook = {
     @:autoIncrement
-    @:primary var id(default,never):Id<HookClass>;
+    @:primary var id(default,never):Id<Hook>;
     var name(default,never):VarChar<255>;
     var url(default,never):VarChar<1024>;
     var ?description(default,never):Id<DescriptionStorage>;
@@ -177,7 +177,7 @@ typedef HookClass = {
 
 typedef HookURL = {
     var urlNo(default,never):SmallInt;
-    var hookID(default,never):Id<HookClass>;
+    var hookID(default,never):Id<Hook>;
     var url:VarChar<1024>;
 }
 
@@ -262,6 +262,7 @@ typedef Link_StructMemberResolve = {
 @:tables(DescItem,DescriptionStorage,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers,
     GClassURL,Panel,PanelURL,
     LibraryField,LibraryURL,
+    Hook,HookURL,
     Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,Link_ResolvedTypes,Link_FunctionArgTypeResolve,Link_FunctionRetTypeResolve,Link_StructMemberResolve)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;

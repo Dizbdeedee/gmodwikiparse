@@ -37,6 +37,16 @@ typedef Tests = {
     hooks : Array<SavedResult>
 }
 
+typedef Sorts = {
+    funcs : Array<String>,
+    gclasses : Array<String>,
+    struct : Array<String>,
+    panels : Array<String>,
+    libs : Array<String>,
+    genums : Array<String>,
+    hooks : Array<String>
+}
+
 typedef SavedResult = {
     uri : String,
     buffer : String
@@ -63,6 +73,8 @@ class ContentParserDef implements ContentParser {
 
     final hookResolver:HookResolver;
 
+    final unparsedURL:Array<String> = [];
+
     final tests:Tests = {
         funcs: [],
         gclasses: [],
@@ -71,6 +83,16 @@ class ContentParserDef implements ContentParser {
         libs: [],
         genums: [],
         hooks: []
+    }
+
+    final sortedURL:Sorts = {
+        funcs: [],
+        hooks: [],
+        genums: [],
+        libs: [],
+        panels: [],
+        struct: [],
+        gclasses: []
     }
 
     public function new (_dbConnection:data.WikiDB,_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
@@ -113,9 +135,13 @@ class ContentParserDef implements ContentParser {
             return switch (parseChooser.choose(jq,url)) { 
                 case NoMatch:
                     trace('Unmatched $url');
+                    unparsedURL.push(url);
+                    Fs.writeFileSync("unparsed.json",Json.stringify(unparsedURL));
                     Promise.NOISE;
                 case Function:
                     updateTest(tests.funcs,url,buf);
+                    sortedURL.funcs.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = funcResolver.resolve(url,jq);
                     #if nodb
                     Promise.NOISE;
@@ -124,6 +150,8 @@ class ContentParserDef implements ContentParser {
                     #end
                 case Enum:
                     updateTest(tests.genums,url,buf);
+                    sortedURL.genums.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = enumResolver.parse(url,jq);
                     #if nodb
                     Promise.NOISE;
@@ -133,6 +161,8 @@ class ContentParserDef implements ContentParser {
                     
                 case Struct:
                     updateTest(tests.struct,url,buf);
+                    sortedURL.struct.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = structResolver.parse(url,jq);
                     #if nodb
                     Promise.NOISE;
@@ -141,6 +171,8 @@ class ContentParserDef implements ContentParser {
                     #end
                 case GClass:
                     updateTest(tests.gclasses,url,buf);
+                    sortedURL.gclasses.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = gclassResolver.resolve(url,jq);
                     #if nodb
                     Promise.NOISE;
@@ -149,6 +181,8 @@ class ContentParserDef implements ContentParser {
                     #end
                 case Panel:
                     updateTest(tests.panels,url,buf);
+                    sortedURL.panels.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = panelResolver.resolve(url,jq);
                     #if nodb
                     Promise.NOISE;
@@ -157,6 +191,8 @@ class ContentParserDef implements ContentParser {
                     #end   
                 case Library:
                     updateTest(tests.libs,url,buf);
+                    sortedURL.libs.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = libraryResolver.parse(url,jq);
                     #if nodb
                     Promise.NOISE;
@@ -165,6 +201,8 @@ class ContentParserDef implements ContentParser {
                     #end
                 case Hooks:
                     updateTest(tests.hooks,url,buf);
+                    sortedURL.hooks.push(url);
+                    Fs.writeFileSync("parsed.json",Json.stringify(sortedURL));
                     var unresolved = hookResolver.parse(url,jq);
                     #if nodb
                     Promise.NOISE;

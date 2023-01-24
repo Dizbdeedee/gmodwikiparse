@@ -81,11 +81,16 @@ class StructResolverDef implements StructResolver {
         var type = getChildCheer(getChildCheer(node,"p"),"strong + a").text();
         var descNode = getChildCheer(node,"div.description");
         var desc = descParser.parseDescNode(descNode,jq);
-        var def = getChildOptCheer(node,"div.description > p:has(code)");
+        var def = switch(getChildOptCheer(node,"div.description > p:has(code)")) {
+            case Some(n):
+                n.text();
+            case None:
+                null;
+        };
         trace(def);
         return {
             fieldNo: no,
-            def: null,
+            def: def,
             description: desc,
             type: type,
             typeUrl: typeUrl,
@@ -95,7 +100,7 @@ class StructResolverDef implements StructResolver {
     }
 
     public function publish(conn:data.WikiDB,page:UnresolvedStructPage):Promise<Noise> {
-        return descPublisher.publish(conn,page.description)
+        return publishOrNull(descPublisher,conn,page.description)
         .next(descID -> {
             conn.Struct.insertOne({
                 id: null,
@@ -115,7 +120,7 @@ class StructResolverDef implements StructResolver {
 
     function pageFields(conn:data.WikiDB,structID:Int,field:UnresolvedStructField) {
         return Promise.lazy(() -> {
-            descPublisher.publish(conn,field.description);
+            publishOrNull(descPublisher,conn,field.description);
         })
         .next(fieldDescID -> {
             conn.StructMember.insertOne({

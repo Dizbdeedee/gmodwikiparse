@@ -1,8 +1,13 @@
 
+import js.html.Text;
+import ts.Undefined;
+import js.Syntax;
 import js.lib.RegExp;
 import haxe.ds.Option;
 import ParseUtil;
 using StringTools;
+using haxe.EnumTools;
+
 
 enum ParseChoice {
     NoMatch;
@@ -29,7 +34,7 @@ class ParseChooserDef implements ParseChooser {
         var isStruct = getOptCheer(jq,"div.struct");
         var isPanel = getOptCheer(jq,"div.panel");
         var isHooks = url.endsWith("_Hooks");
-        var libOrGClass:LibOrGClass = if (isHooks) {
+        var libOrGClass:LibOrGClass = if (isHooks || isPanel.getIndex() == 0) {
             None;
         } else {
             liborGClass(jq,url);
@@ -60,11 +65,15 @@ class ParseChooserDef implements ParseChooser {
     //an age old question. all together now
     function liborGClass(jq:CheerioAPI,url:String):LibOrGClass {
         if (getOptCheer(jq,"div.type") == None) return None;
-        var firstMember:CheerioD = jq.call("div.memberline").first();
+        var firstMember:js.html.Text = jq.call("div.member_line").first().contents().get(0);
+        if (firstMember == null) return None;
+        trace(url);
+        trace(firstMember);
         var pageName = getPageName(url);
         var regexLib = new RegExp('$pageName[.]');
         var regexGClass = new RegExp('$pageName[:]');
-        var matchText = firstMember.text();
+        var matchText = firstMember.data;
+        // return None;
         return if (regexLib.exec(matchText) != null) {
             Lib;
         } else if (regexGClass.exec(matchText) != null) {

@@ -38,11 +38,10 @@ class PanelResolverDef implements PanelResolver {
 
     public function resolve(url:String,jq:CheerioAPI):UnresolvedPanelPage {
         var name = getPageName(url);
-
         var pageContent = getCheer(jq,"div.description_section");
         var desc = descParser.parseDescNode(pageContent,jq);
         var parentUrlOpt = getOptCheer(jq,'div.panel > h1:contains("Parent") ~ p > a');
-        var urlsNodeOpt = getOptCheer(jq,"div.members > h1:contains('Methods') ~ div.section");
+        var urlsNodeOpt = getOptCheer(jq,"div.members > h1:contains('Methods') + div.section");
         var urls = switch (urlsNodeOpt) {
             case Some(urlsNode):
                 parseUrlNode(jq,urlsNode);

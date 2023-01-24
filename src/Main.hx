@@ -81,14 +81,18 @@ class Main {
             db.GEnumMembers.create(true),
             db.GClassURL.create(true),
             db.Panel.create(true),
-            db.PanelURL.create(true)
+            db.PanelURL.create(true),
+            db.Hook.create(true),
+            db.HookURL.create(true),
+            db.LibraryURL.create(true),
+            db.LibraryField.create(true)
             // db.Link_ResolvedTypes.create(true)
         ];
         return Promise.inParallel(databasePromises);
     }
 
     static function linkMain(db:WikiDB) {
-        db.Link_ResolvedTypes.drop().flatMap((x) ->
+        db.Link_ResolvedTypes.drop().flatMap((_) ->
             db.Link_ResolvedTypes.create(true).next((_) -> {
                 trace("Poorly...");
                 TypeLinker.addLuaTypes(db);
@@ -105,6 +109,9 @@ class Main {
     }
 
     public static function main() {
+        if (Fs.existsSync("wikidb.sqlite")) {
+            Fs.unlinkSync("wikidb.sqlite");
+        }
         var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
         var db = new WikiDB("wiki_db",driver);
         createDBs(db).handle(_ -> {
@@ -155,7 +162,9 @@ class Main {
             var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
             var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
             var hook = new HookResolverDef(descParser,new DescriptionPublisherDef());
-            
+            #if linkage
+            linkMain(db);
+            #else
             #if !test
             var parse = new ContentParserDef(db,parseChooser,
             {
@@ -190,6 +199,7 @@ class Main {
             parse.parseTest().handle(_ -> {
 
             });
+            #end
             #end
         });
         // linkMain(db);

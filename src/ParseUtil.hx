@@ -1,5 +1,8 @@
 package;
 
+using tink.CoreApi;
+import generators.desc.DescriptionPublisher;
+import generators.desc.UnresolvedDescription;
 import cheerio.lib.cheerio.Cheerio;
 import cheerio.lib.load.CheerioAPI;
 import haxe.ds.Option;
@@ -115,4 +118,12 @@ function mapChildren<T>(node:CheerioD,jq:CheerioAPI,map:(node:CheerioD) -> T):Ar
         return true;
     });
     return arr;
+}
+
+function publishOrNull(descPublisher:DescriptionPublisher,conn:data.WikiDB,desc:UnresolvedDescription):Promise<Null<data.Id<data.WikiDB.DescriptionStorage>>> {
+    return if (desc.length > 0) {
+        descPublisher.publish(conn,desc);
+    } else {
+        Promise.resolve(null);
+    }
 }

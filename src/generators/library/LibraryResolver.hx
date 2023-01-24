@@ -48,16 +48,21 @@ class LibraryResolverDef implements LibraryResolver {
         var name = getPageName(url);
         var pageContent = getCheer(jq,"div.type > div.section");
         var desc = descParser.parseDescNode(pageContent,jq);
-        var urlsNode = getCheer(jq,"div.members > h1:contains('Methods') ~ div.section");
-        var fieldsNode = getCheer(jq,"div.members > h1:contains('Fields') ~ div.section");
+        var urlsNode = getCheer(jq,"div.members > h1:contains('Methods') + div.section");
+        var fieldsNodeOpt = getOptCheer(jq,"div.members > h1:contains('Fields') + div.section");
         var id = 0;
         var urls:Array<UnresolvedLibraryURL> = mapChildren(urlsNode,jq,(el) -> 
             parseURL(el,jq,id++)
         );
         id = 0;
-        var fields:Array<UnresolvedLibraryField> = mapChildren(fieldsNode,jq,(el) -> 
-            parseField(el,jq,id++)
-        );
+        var fields:Array<UnresolvedLibraryField> = switch (fieldsNodeOpt) {
+            case Some(fieldsNode):
+                mapChildren(fieldsNode,jq,(el) -> 
+                    parseField(el,jq,id++)
+                );
+            case None:
+                [];
+        }
         var isDeprecated = isPageDeprecated(jq);
         return {
             description: desc,
@@ -124,7 +129,14 @@ class LibraryResolverDef implements LibraryResolver {
     function libraryFieldPublish(conn:data.WikiDB,libraryID:Int,field:UnresolvedLibraryField) {
         return Promise.lazy(() -> descPublisher.publish(conn,field.description)
         .next((descID) -> 
-            return true
+            conn.LibraryField.insertOne({
+                fieldNo: field.fieldNo,
+                description: descID,
+                typeURL: field.typeURL,
+                type: field.type,
+                libraryID: libraryID,
+                name: field.name
+            })
         ));
            
         

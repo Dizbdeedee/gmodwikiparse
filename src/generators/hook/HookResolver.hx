@@ -63,6 +63,32 @@ class HookResolverDef implements HookResolver {
     }
 
     public function publish(conn:data.WikiDB,page:UnresolvedHookPage):Promise<Noise> {
-        return Promise.NOISE;
+        return publishDesc(conn,page.description)
+        .next((descID) -> {
+            conn.Hook.insertOne({
+                id: null,
+                description: descID,
+                url: page.url,
+                name: page.name
+            })
+        .next((hookID) -> {
+            conn.HookURL.insertMany(page.urls.map((unresolvedURL) -> {
+                {
+                    url: unresolvedURL.url,
+                    urlNo: unresolvedURL.urlNo,
+                    hookID: hookID
+                }
+            }));
+        });
+        });
+        
+    }
+
+    function publishDesc(conn:data.WikiDB,desc:UnresolvedDescription) {
+        return if (desc.length > 0) {
+            descPublisher.publish(conn,desc);
+        } else {
+            Promise.resolve(null);
+        }
     }
 }
