@@ -1,5 +1,8 @@
 // import node_warc.WARCParser;
 // import haxe.Json;
+import haxe.Json;
+import node.readline.ReadLine;
+import js.node.Readline;
 import generators.gclass.GClassResolver.GClassResolverDef;
 import typelink.TypeLinker;
 import generators.standard.FunctionResolver;
@@ -33,6 +36,7 @@ typedef Page = {
     viewCount : Int
 }
 
+//append to warc
 class Main {
 
     static function parseWorker(warc:WARCParser,parse:ContentParser) {
@@ -93,10 +97,16 @@ class Main {
 
     static function linkMain(db:WikiDB) {
         db.Link_ResolvedTypes.drop().flatMap((_) ->
-            db.Link_ResolvedTypes.create(true).next((_) -> {
+            db.Link_ResolvedTypes.create(true)
+            .next(_ -> {
                 trace("Poorly...");
-                TypeLinker.addLuaTypes(db);
-                Noise;
+                TypeLinker.addLuaTypes(db).noise();
+            })
+            .next(_ -> {
+                TypeLinker.typeLinkage(db).noise();
+            })
+            .next(_ -> {
+                TypeLinker.typeNext(db).noise();
             })
         ).handle((x) -> {
             trace(x);
@@ -105,13 +115,61 @@ class Main {
     }
 
     static function afterDB() {
-
+        
     }
 
     public static function main() {
+        #if missingJson
+        produceMissingJson();
+        #else
+        main2();
+        #end
+
+    }
+
+    static var linesParsed:Map<String,Bool> = [];
+
+    static var allLines:Map<String,Bool> = [];
+
+    static function produceMissingJson() {
+        if (!Fs.existsSync("seeds.txt")) throw "No pages.json";
+        var parse = Readline.createInterface({input: Fs.createReadStream("parsed.json")});
+        parse.on("line",(parseLine) -> {
+            var json = Json.parse(parseLine);
+            var seedIn = Readline.createInterface({input: Fs.createReadStream("seeds.txt")});
+            for (fieldID in Reflect.fields(json)) {
+                var arr:Array<String> = Reflect.field(json,fieldID);
+                for (arrItem in arr) {
+                    linesParsed.set(arrItem,true);
+                }
+            }
+            seedIn.on("line",(seedLine) -> {
+                allLines.set(seedLine,true);
+            });
+            seedIn.on("close",() -> {
+                var buf = new StringBuf();
+                for (str => _ in allLines) {
+                    if (linesParsed.exists(str)) {
+                        // trace('Parsed $str');
+                    } else {
+                        buf.add(str + "\n");
+                    }
+                }
+                Fs.writeFileSync("unparsedseeds.txt",buf.toString());
+            });
+        });
+        
+        
+        
+    }
+
+    public static function main2() {
+        
+        #if !linkage
         if (Fs.existsSync("wikidb.sqlite")) {
             Fs.unlinkSync("wikidb.sqlite");
         }
+        #end
         var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
         var db = new WikiDB("wiki_db",driver);
         createDBs(db).handle(_ -> {
@@ -166,7 +224,7 @@ class Main {
             linkMain(db);
             #else
             #if !test
-            var parse = new ContentParserDef(db,parseChooser,
+             var parse = new ContentParserDef(db,parseChooser,
             {
                 _panelResolver: panel,
                 _structResolver: struct,

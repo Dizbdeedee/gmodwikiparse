@@ -226,6 +226,11 @@ typedef Link_LibraryOwns = {
     var funcID(default,never):Id<Function>;
 }
 
+typedef Link_PanelOwns = {
+    var panelID(default,never):Id<Panel>;
+    var funcID(default,never):Id<Function>;
+}
+
 typedef Link_GClassOwns = {
     var gclassID(default,never):Id<GClass>;
     var funcID(default,never):Id<Function>;
@@ -245,7 +250,8 @@ typedef Link_ResolvedTypes = {
 }
 
 typedef Link_FunctionArgTypeResolve = {
-    @:primary var funcArgID(default,never):Id<FunctionArg>;
+    var funcArgNo(default,never):SmallInt;
+    var funcID(default,never):Id<Function>;
     var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
@@ -263,7 +269,9 @@ typedef Link_StructMemberResolve = {
     GClassURL,Panel,PanelURL,
     LibraryField,LibraryURL,
     Hook,HookURL,
-    Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,Link_ResolvedTypes,Link_FunctionArgTypeResolve,Link_FunctionRetTypeResolve,Link_StructMemberResolve)
+    Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,
+    Link_ResolvedTypes,Link_FunctionArgTypeResolve,
+    Link_FunctionRetTypeResolve,Link_StructMemberResolve)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;
 

@@ -127,3 +127,10 @@ function publishOrNull(descPublisher:DescriptionPublisher,conn:data.WikiDB,desc:
         Promise.resolve(null);
     }
 }
+
+var trim = ~/[\/]gmod[\/].*/;
+
+function trimFullURL(url:String) {
+    trim.match(url);
+    return trim.matched(0);
+}

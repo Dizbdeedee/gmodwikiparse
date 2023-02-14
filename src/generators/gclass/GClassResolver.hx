@@ -46,7 +46,7 @@ class GClassResolverDef implements GClassResolver {
             description: desc,
             name: name,
             urls: urls,
-            url: url,
+            url: trimFullURL(url),
             isDeprecated: isDeprecated
         }
         

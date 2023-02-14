@@ -50,7 +50,7 @@ class HookResolverDef implements HookResolver {
             name: name,
             description: description,
             urls: urls,
-            url: url
+            url: trimFullURL(url)
         }
     }
 

@@ -54,7 +54,7 @@ class GEnumResolverDef implements GEnumResolver {
             name: name,
             enums: enums,
             description: desc,
-            url: url,
+            url: trimFullURL(url),
             realmServer: realmServer,
             realmClient: realmClient,
             realmMenu: realmMenu,

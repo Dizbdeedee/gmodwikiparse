@@ -36,4 +36,54 @@ class TypeLinker {
         });
        
     }
+
+    public static function typeLinkage(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.GClass.all().next(
+        (arr) -> {
+            var resolvedTypes:Array<data.WikiDB.Link_ResolvedTypes> = arr.map(
+                (gclass) -> {
+                    return {
+                        typeID: null,
+                        name: gclass.name,
+                        url: gclass.url
+                    }
+                }
+            );
+            return dbConnection.Link_ResolvedTypes.insertMany(resolvedTypes);
+        });
+        // dbConnection.Link_ResolvedTypes.insertMany()
+    }
+
+    public static function typeNext(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.FunctionArg.all().next(
+        (arr) -> {
+            // trace(arr);
+            var resolvedTypes = [for (funcArg in arr) resolveType(funcArg,dbConnection)];
+            return Promise.inSequence(resolvedTypes);
+            // var typeLinks:Array<Link_FunctionArgTypeResolve> = arr.map((funcArg) -> {
+            //     var resolvedType = dbConnection.Link_ResolvedTypes
+            //     return {
+            //         funcArgNo: funcArg.argumentNo,
+            //         funcid: funcArg.funcid,
+            //         typeID: 
+            //     }
+            // });
+            // return Promise.NOISE;
+        });
+    }
+
+    static function resolveType(funcArg:data.WikiDB.FunctionArg,dbConnection:data.WikiDB):Promise<Noise> {
+        // trace(funcArg);
+        return dbConnection.Link_ResolvedTypes.select({
+            typeID: Link_ResolvedTypes.typeID
+        }).where(funcArg.typeURL == Link_ResolvedTypes.url).first()
+        .next((result) -> {
+            // trace(result);
+            return Promise.NOISE;
+        }).recover((err) -> {
+            trace(funcArg.typeURL);
+            // trace(err);
+            return Future.NOISE;
+        });
+    }
 }

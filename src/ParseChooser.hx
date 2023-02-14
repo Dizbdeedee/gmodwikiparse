@@ -65,14 +65,11 @@ class ParseChooserDef implements ParseChooser {
     //an age old question. all together now
     function liborGClass(jq:CheerioAPI,url:String):LibOrGClass {
         if (getOptCheer(jq,"div.type") == None) return None;
-        var firstMember:js.html.Text = jq.call("div.member_line").first().contents().get(0);
-        if (firstMember == null) return None;
-        trace(url);
-        trace(firstMember);
+        var matchText = jq.call("div.member_line > a.subject").first().attr("href");
         var pageName = getPageName(url);
         var regexLib = new RegExp('$pageName[.]');
         var regexGClass = new RegExp('$pageName[:]');
-        var matchText = firstMember.data;
+        // var matchText = firstMember.data;
         // return None;
         return if (regexLib.exec(matchText) != null) {
             Lib;

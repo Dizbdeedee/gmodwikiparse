@@ -59,7 +59,7 @@ class PanelResolverDef implements PanelResolver {
         return {
             name: name,
             description: desc,
-            url: url,
+            url: trimFullURL(url),
             urls: urls,
             parenturl: parentUrl,
             isInternal: isInternal,

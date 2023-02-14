@@ -50,7 +50,7 @@ class UnresolvedFunctionParseDef implements UnresolvedFunctionParse {
         }
         return {
             name: funcName,
-            url: url,
+            url: trimFullURL(url),
             description: unDescription,
             isHook: isHook,
             stateClient: isClient,

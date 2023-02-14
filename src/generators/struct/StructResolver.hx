@@ -67,7 +67,7 @@ class StructResolverDef implements StructResolver {
             name: name,
             description: desc,
             fields: fields,
-            url: url,
+            url: trimFullURL(url),
             realmServer: realmServer,
             realmClient: realmClient,
             realmMenu: realmMenu

@@ -68,7 +68,7 @@ class LibraryResolverDef implements LibraryResolver {
             description: desc,
             name: name,
             urls: urls,
-            url: url,
+            url: trimFullURL(url),
             isDeprecated: isDeprecated,
             fields: fields
         }
