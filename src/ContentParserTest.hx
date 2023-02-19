@@ -16,7 +16,7 @@ import ParseUtil;
 using tink.CoreApi;
 
 interface ContentParserTest {
-    function parseTest():Promise<Noise>;
+    function parseTest(dbConnection:data.WikiDB):Promise<Noise>;
 }
 
 class ContentParserTestDef implements ContentParserTest {
@@ -39,8 +39,7 @@ class ContentParserTestDef implements ContentParserTest {
 
     final libraryResolver:LibraryResolver;
     
-    public function new (_dbConnection:data.WikiDB,_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
-        dbConnection = _dbConnection;
+    public function new (_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
         parseChooser = _parseChooser;
         funcResolver = initBundle._funcResolver;
         gclassResolver = initBundle._gclassResolver;
@@ -51,38 +50,38 @@ class ContentParserTestDef implements ContentParserTest {
         genumResolver = initBundle._enumResolver;
     }
 
-    public function parseTest():Promise<Noise> {
+    public function parseTest(dbConnection:data.WikiDB):Promise<Noise> {
         // Fs.readdirSync("test");
         trace("woo");
         var filebuf = Fs.readFileSync("tests.json");
         var json:Tests = cast Json.parse(filebuf.toString());
         var arr = [];
         for (func in json.funcs) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(func)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,func)));
         }
         for (gclass in json.gclasses) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(gclass)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,gclass)));
         }
         for (struct in json.struct) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(struct)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,struct)));
         }
         for (panel in json.panels) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(panel)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,panel)));
         }
         for (libs in json.libs) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(libs)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,libs)));
         }
         for (genum in json.genums) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(genum)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,genum)));
         }
         for (hook in json.hooks) {
-            arr.push(Promise.lazy(() -> loadHTMLTest(hook)));
+            arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,hook)));
         }
         
         return Promise.inSequence(arr);
     }
 
-    function loadHTMLTest(saved:SavedResult):Promise<Noise> {
+    function loadHTMLTest(dbConnection:data.WikiDB,saved:SavedResult):Promise<Noise> {
         trace(saved.uri);
         final jq = Cheerio.load(saved.buffer);
         return processExceptions(saved.uri,jq).next((processed) -> {

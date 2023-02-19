@@ -12,22 +12,7 @@ import js.node.Fs;
 import data.WikiDB;
 import warcio.WARCParser;
 import warcio.WARCResult;
-import generators.desc.DescriptionParser;
-import generators.standard.UnresolvedFunctionParse;
-import generators.standard.UnresolvedFunctionRetParse;
-import generators.standard.UnresolvedFunctionArgParse;
-import generators.genum.GEnumResolver;
-import generators.library.LibraryResolver;
-import generators.panel.PanelResolver;
-import generators.struct.StructResolver;
-import generators.desc.DescriptionPublisher;
-import cheerio.lib.cheerio.Cheerio;
-import generators.desc.DescSelector;
-import cheerio.lib.load.CheerioAPI;
-import generators.hook.HookResolver;
-import ContentParser;
-import ContentParserTest;
-import ParseChooser;
+
 
 
 typedef Page = {
@@ -36,10 +21,16 @@ typedef Page = {
     viewCount : Int
 }
 
+static final WARC_NAME = "gmodwiki"
+
+static final WARC_EXT = ".warc";
+
+static final WARC_EXT_ZIPPED = ".warc.gz";
+
 //append to warc
 class Main {
 
-    static function parseWorker(warc:WARCParser,parse:ContentParser) {
+    static function parseWorker(dbConnection:data.wikiDB,warc:WARCParser,parse:ContentParser) {
         return new Promise((success,failure) -> {
             var doNothing = false;
             function parseResult(result:Outcome<WARCResult,Error>) {
@@ -49,7 +40,7 @@ class Main {
                         if (data == null) {
                             success(Noise);
                         } else {
-                            parse.parse(data).handle((outcome) -> {
+                            parse.parse(dbConnection,data).handle((outcome) -> {
                                 switch (outcome) {
                                     case Success(_):
                                         warc.parse().toPromise().handle(parseResult);
@@ -114,58 +105,44 @@ class Main {
         });
     }
 
-    static function afterDB() {
-        
+    
+    static function existsWarc(find:String):String {
+        return if (Fs.existsSync('$find$WARC_EXT')) {
+            '$find$WARC_EXT';
+        } else if (Fs.existsSync('$find$WARC_EXT_ZIPPED')) {
+            '$find$WARC_EXT_ZIPPED';
+        } else {
+            null;
+        }
     }
+
+    static function findAvaliableWarcs():Array<String> {
+        var avaliable = [];
+        for (i in 1...100) {
+            var resultExists = existsWarc('${WARC_NAME}_$i');
+            if (resultsExists != null) {
+                avaliable.push(resultExists);
+            } else {
+                break;
+            }
+        }
+        return avaliable;
+    }
+    
+    //hmmmmm...?
+    
 
     public static function main() {
         #if missingJson
-        produceMissingJson();
+        MissingJson.produceMissingJson();
         #else
-        main2();
+        mainOthers();
         #end
 
     }
-
-    static var linesParsed:Map<String,Bool> = [];
-
-    static var allLines:Map<String,Bool> = [];
-
-    static function produceMissingJson() {
-        if (!Fs.existsSync("seeds.txt")) throw "No pages.json";
-        var parse = Readline.createInterface({input: Fs.createReadStream("parsed.json")});
-        parse.on("line",(parseLine) -> {
-            var json = Json.parse(parseLine);
-            var seedIn = Readline.createInterface({input: Fs.createReadStream("seeds.txt")});
-            for (fieldID in Reflect.fields(json)) {
-                var arr:Array<String> = Reflect.field(json,fieldID);
-                for (arrItem in arr) {
-                    linesParsed.set(arrItem,true);
-                }
-            }
-            seedIn.on("line",(seedLine) -> {
-                allLines.set(seedLine,true);
-            });
-            seedIn.on("close",() -> {
-                var buf = new StringBuf();
-                for (str => _ in allLines) {
-                    if (linesParsed.exists(str)) {
-                        // trace('Parsed $str');
-                    } else {
-                        buf.add(str + "\n");
-                    }
-                }
-                Fs.writeFileSync("unparsedseeds.txt",buf.toString());
-            });
-        });
-        
-        
-        
-    }
-
-    public static function main2() {
-        
-        #if !linkage
+    
+    public static function mainOthers() {
+        #if (!linkage && !keepPrev)
         if (Fs.existsSync("wikidb.sqlite")) {
             Fs.unlinkSync("wikidb.sqlite");
         }
@@ -173,68 +150,19 @@ class Main {
         var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
         var db = new WikiDB("wiki_db",driver);
         createDBs(db).handle(_ -> {
-            var warc = new WARCParser(Fs.createReadStream("gmodwiki.warc"));
-            var descParserLZ = new DescriptionParserLazy();
-            var descParser = new DescriptionParserDef(
-            [
-                new PSelector(descParserLZ),
-                new NoteSelector(descParserLZ),
-                new WarnSelector(descParserLZ),
-                new BugSelector(descParserLZ),
-                new DeprecatedSelector(descParserLZ),
-                new RemovedSelector(descParserLZ),
-                new ListSelector(descParserLZ),
-                new LuaCodeSelector(descParserLZ),
-                new HeadingSelector(),
-                new HeadingWithSectionSelector(),
-                new ValidateSelector(descParserLZ),
-                new TitleSelector(),
-                new AnchorSelector(),
-                new ImageSelector(),
-                new TextSelector(),
-                new LinkSelector(),
-                new TableSelector(),
-                new CodeTagSelector(),
-                new StrongSelector(),
-                new BRSelector(),
-                new JSCodeSelector(),
-                new KeySelector(),
-                new InternalSelector(descParserLZ),
-                new ItalicsSelector(),
-                new ImgSelector(),
-                new ListItemSelector(),
-                new CodeFeatureSelector(descParserLZ),
-                new BoldSelector()
-            ]);
-            descParserLZ.resolve(descParser);
-            var func = new FunctionResolverDef(
-                new UnresolvedFunctionParseDef(descParser),
-                new UnresolvedFunctionArgParseDef(descParser),
-                new UnresolvedFunctionRetParseDef(descParser),
-                new DescriptionPublisherDef()
-            );
-            var gclass = new GClassResolverDef(descParser,new DescriptionPublisherDef());
-            var parseChooser = new ParseChooserDef();
-            var panel = new PanelResolverDef(descParser,new DescriptionPublisherDef());
-            var struct = new StructResolverDef(descParser,new DescriptionPublisherDef());
-            var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
-            var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
-            var hook = new HookResolverDef(descParser,new DescriptionPublisherDef());
+            for (i in findAvaliableWarcs()) {
+
+            }
             #if linkage
             linkMain(db);
-            #else
-            #if !test
-             var parse = new ContentParserDef(db,parseChooser,
-            {
-                _panelResolver: panel,
-                _structResolver: struct,
-                _enumResolver: genum,
-                _gclassResolver: gclass,
-                _libraryResolver: library,
-                _funcResolver: func,
-                _hookResolver: hook
+            #elseif test
+            var contentParser = Creation.contentParserTest();
+            parse.parseTest(db).handle(_ -> {
+
             });
-            parseWorker(warc,parse).handle((outcome) -> {
+            #else
+            var contentParser = Creation.contentParser();
+            parseWorker(db,warc,parse).handle((outcome) -> {
                 switch (outcome) {
                     case Success(_):
                         linkMain(db);
@@ -244,38 +172,9 @@ class Main {
                         trace('grr failure $failure');
                 }
             });
-            #else
-            var parse = new ContentParserTestDef(db,parseChooser,{
-                _panelResolver: panel,
-                _structResolver: struct,
-                _enumResolver: genum,
-                _gclassResolver: gclass,
-                _libraryResolver: library,
-                _funcResolver: func,
-                _hookResolver: hook
-            });
-            parse.parseTest().handle(_ -> {
-
-            });
-            #end
             #end
         });
         // linkMain(db);
         
-    }
-}
-
-//TODO... sigh
-class DescriptionParserLazy implements generators.desc.DescriptionParser {
-    var descParser:generators.desc.DescriptionParser;
-
-    public function new() {}
-
-    public function resolve(_descParser:DescriptionParser) {
-        descParser = _descParser;
-    }
-
-    public function parseDescNode(elem:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem> {
-        return descParser.parseDescNode(elem,jq);
     }
 }

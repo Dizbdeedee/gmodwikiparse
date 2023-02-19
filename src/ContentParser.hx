@@ -95,7 +95,7 @@ class ContentParserDef implements ContentParser {
         gclasses: []
     }
 
-    public function new (_dbConnection:data.WikiDB,_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
+    public function new (_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
         dbConnection = _dbConnection;
         parseChooser = _parseChooser;
         funcResolver = initBundle._funcResolver;
@@ -107,12 +107,12 @@ class ContentParserDef implements ContentParser {
         hookResolver = initBundle._hookResolver;
     }
 
-    public function parse(content:WARCResult):Promise<Noise> {
+    public function parse(dbConnection:data.WikiDB,content:WARCResult):Promise<Noise> {
         if (content.warcType != "response") {
             return Promise.resolve(Noise);
         }
         var readPromise = content.readFully().toPromise();
-        var handledPromise = readPromise.next((data) -> loadHTML(content));
+        var handledPromise = readPromise.next((data) -> loadHTML(dbConnection,content));
         return handledPromise.noise();
     }
 
@@ -123,7 +123,7 @@ class ContentParserDef implements ContentParser {
 
     static final decoder:TextDecoder = new TextDecoder();
 
-    function loadHTML(parsedWarc:WARCResult):Promise<Noise> {
+    function loadHTML(dbConnection:data.WikiDB,parsedWarc:WARCResult):Promise<Noise> {
         final url = parsedWarc.warcTargetURI;
         // trace(parsedWarc.payload);
         final buf = decoder.decode(parsedWarc.payload);
