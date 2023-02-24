@@ -21,74 +21,9 @@ import ParseChooser;
 
 class Creation {
 
-    static function contentParserTest() {
+    public static function contentParserTest() {
         return {
-            final descParser:DescriptionParser = { 
-                var descParserLZ = new DescriptionParserLazy();
-                var _descParser = new DescriptionParserDef(
-                [
-                    new PSelector(descParserLZ),
-                    new NoteSelector(descParserLZ),
-                    new WarnSelector(descParserLZ),
-                    new BugSelector(descParserLZ),
-                    new DeprecatedSelector(descParserLZ),
-                    new RemovedSelector(descParserLZ),
-                    new ListSelector(descParserLZ),
-                    new LuaCodeSelector(descParserLZ),
-                    new HeadingSelector(),
-                    new HeadingWithSectionSelector(),
-                    new ValidateSelector(descParserLZ),
-                    new TitleSelector(),
-                    new AnchorSelector(),
-                    new ImageSelector(),
-                    new TextSelector(),
-                    new LinkSelector(),
-                    new TableSelector(),
-                    new CodeTagSelector(),
-                    new StrongSelector(),
-                    new BRSelector(),
-                    new JSCodeSelector(),
-                    new KeySelector(),
-                    new InternalSelector(descParserLZ),
-                    new ItalicsSelector(),
-                    new ImgSelector(),
-                    new ListItemSelector(),
-                    new CodeFeatureSelector(descParserLZ),
-                    new BoldSelector()
-                ]);
-                descParserLZ.resolve(descParser);
-                _descParser;
-            }
-            var func = new FunctionResolverDef(
-                new UnresolvedFunctionParseDef(descParser),
-                new UnresolvedFunctionArgParseDef(descParser),
-                new UnresolvedFunctionRetParseDef(descParser),
-                new DescriptionPublisherDef()
-            );
-            var gclass = new GClassResolverDef(descParser,new DescriptionPublisherDef());
-            var panel = new PanelResolverDef(descParser,new DescriptionPublisherDef());
-            var struct = new StructResolverDef(descParser,new DescriptionPublisherDef());
-            var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
-            var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
-            var hook = new HookResolverDef(descParser,new DescriptionPublisherDef());
-            
-            final _contentParser = new ContentParserTestDef(new ParseChooserDef(),
-                {
-                    _panelResolver: panel,
-                    _structResolver: struct,
-                    _enumResolver: genum,
-                    _gclassResolver: gclass,
-                    _libraryResolver: library,
-                    _funcResolver: func,
-                    _hookResolver: hook
-                });
-            _contentParser;
-        }
-    }
-
-    static function contentParser() {
-        return {
-            final descParser:DescriptionParser = { 
+            final descParser:DescriptionParser = {
                 var descParserLZ = new DescriptionParserLazy();
                 var _descParser = new DescriptionParserDef(
                 [
@@ -136,8 +71,8 @@ class Creation {
             var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
             var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
             var hook = new HookResolverDef(descParser,new DescriptionPublisherDef());
-            
-            final _contentParser = new ContentParserDef(db,new ParseChooserDef(),
+
+            final _contentParser = new ContentParserTestDef(new ParseChooserDef(),
                 {
                     _panelResolver: panel,
                     _structResolver: struct,
@@ -149,7 +84,72 @@ class Creation {
                 });
             _contentParser;
         }
-        
+    }
+
+    public static function contentParser() {
+        return {
+            final descParser:DescriptionParser = {
+                var descParserLZ = new DescriptionParserLazy();
+                var _descParser = new DescriptionParserDef(
+                [
+                    new PSelector(descParserLZ),
+                    new NoteSelector(descParserLZ),
+                    new WarnSelector(descParserLZ),
+                    new BugSelector(descParserLZ),
+                    new DeprecatedSelector(descParserLZ),
+                    new RemovedSelector(descParserLZ),
+                    new ListSelector(descParserLZ),
+                    new LuaCodeSelector(descParserLZ),
+                    new HeadingSelector(),
+                    new HeadingWithSectionSelector(),
+                    new ValidateSelector(descParserLZ),
+                    new TitleSelector(),
+                    new AnchorSelector(),
+                    new ImageSelector(),
+                    new TextSelector(),
+                    new LinkSelector(),
+                    new TableSelector(),
+                    new CodeTagSelector(),
+                    new StrongSelector(),
+                    new BRSelector(),
+                    new JSCodeSelector(),
+                    new KeySelector(),
+                    new InternalSelector(descParserLZ),
+                    new ItalicsSelector(),
+                    new ImgSelector(),
+                    new ListItemSelector(),
+                    new CodeFeatureSelector(descParserLZ),
+                    new BoldSelector()
+                ]);
+                descParserLZ.resolve(_descParser);
+                _descParser;
+            }
+            var func = new FunctionResolverDef(
+                new UnresolvedFunctionParseDef(descParser),
+                new UnresolvedFunctionArgParseDef(descParser),
+                new UnresolvedFunctionRetParseDef(descParser),
+                new DescriptionPublisherDef()
+            );
+            var gclass = new GClassResolverDef(descParser,new DescriptionPublisherDef());
+            var panel = new PanelResolverDef(descParser,new DescriptionPublisherDef());
+            var struct = new StructResolverDef(descParser,new DescriptionPublisherDef());
+            var genum = new GEnumResolverDef(descParser,new DescriptionPublisherDef());
+            var library = new LibraryResolverDef(descParser,new DescriptionPublisherDef());
+            var hook = new HookResolverDef(descParser,new DescriptionPublisherDef());
+
+            final _contentParser = new ContentParserDef(new ParseChooserDef(),
+                {
+                    _panelResolver: panel,
+                    _structResolver: struct,
+                    _enumResolver: genum,
+                    _gclassResolver: gclass,
+                    _libraryResolver: library,
+                    _funcResolver: func,
+                    _hookResolver: hook
+                });
+            _contentParser;
+        }
+
     }
 }
 

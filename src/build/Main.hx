@@ -6,6 +6,9 @@ function main() {
     #elseif missingJson
     Sys.setCwd("staging");
     Sys.command("haxe -D missingJson buildstaging.hxml && node gmodwiki.js");
+    #elseif keepPrev
+    Sys.setCwd("staging");
+    Sys.command("haxe -D keepPrev buildstaging.hxml && node gmodwiki.js");
     #elseif build
     Sys.setCwd("staging");
     Sys.command("haxe buildstaging.hxml && node gmodwiki.js");

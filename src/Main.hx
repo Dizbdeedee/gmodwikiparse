@@ -13,53 +13,33 @@ import data.WikiDB;
 import warcio.WARCParser;
 import warcio.WARCResult;
 
-
-
 typedef Page = {
     address : String,
     updateCount : Int,
     viewCount : Int
 }
 
-static final WARC_NAME = "gmodwiki"
+final WARC_NAME = "gmodwiki";
 
-static final WARC_EXT = ".warc";
+final WARC_EXT = ".warc";
 
-static final WARC_EXT_ZIPPED = ".warc.gz";
+final WARC_EXT_ZIPPED = ".warc.gz";
 
 //append to warc
 class Main {
 
-    static function parseWorker(dbConnection:data.wikiDB,warc:WARCParser,parse:ContentParser) {
-        return new Promise((success,failure) -> {
-            var doNothing = false;
-            function parseResult(result:Outcome<WARCResult,Error>) {
-                if (doNothing) return;
-                switch (result) {
-                    case Success(data):
-                        if (data == null) {
-                            success(Noise);
-                        } else {
-                            parse.parse(dbConnection,data).handle((outcome) -> {
-                                switch (outcome) {
-                                    case Success(_):
-                                        warc.parse().toPromise().handle(parseResult);
-                                    case Failure(err):
-                                        failure(err);
-                                }
-                            });
-                        }
-                    case Failure(err):
-                        failure(err);
-                }
-
+    static function parseWorker(dbConnection:data.WikiDB,warcParse:WARCParser,contentParse:ContentParser) {
+        function processWARC(data:WARCResult) {
+            return if (data != null) {
+                contentParse.parse(dbConnection,data).next(_ -> warcParse.parse().toPromise().next(processWARC));
+            } else {
+                Promise.resolve(true);
             }
-            warc.parse().toPromise().handle(parseResult);
-            return () -> {
-                doNothing = true;
-            };
-        });
+        }
+        return warcParse.parse().toPromise().next(processWARC);
     }
+
+
     static function createDBs(db:WikiDB):Promise<Noise> {
         var databasePromises = [
             db.DescItem.create(true),
@@ -105,7 +85,6 @@ class Main {
         });
     }
 
-    
     static function existsWarc(find:String):String {
         return if (Fs.existsSync('$find$WARC_EXT')) {
             '$find$WARC_EXT';
@@ -120,7 +99,7 @@ class Main {
         var avaliable = [];
         for (i in 1...100) {
             var resultExists = existsWarc('${WARC_NAME}_$i');
-            if (resultsExists != null) {
+            if (resultExists != null) {
                 avaliable.push(resultExists);
             } else {
                 break;
@@ -128,9 +107,8 @@ class Main {
         }
         return avaliable;
     }
-    
+
     //hmmmmm...?
-    
 
     public static function main() {
         #if missingJson
@@ -138,9 +116,8 @@ class Main {
         #else
         mainOthers();
         #end
-
     }
-    
+
     public static function mainOthers() {
         #if (!linkage && !keepPrev)
         if (Fs.existsSync("wikidb.sqlite")) {
@@ -148,33 +125,30 @@ class Main {
         }
         #end
         var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
-        var db = new WikiDB("wiki_db",driver);
-        createDBs(db).handle(_ -> {
-            for (i in findAvaliableWarcs()) {
-
-            }
+        var dbConnection = new WikiDB("wiki_db",driver);
+        createDBs(dbConnection).handle(_ -> {
             #if linkage
-            linkMain(db);
+            linkMain(dbConnection);
             #elseif test
             var contentParser = Creation.contentParserTest();
-            parse.parseTest(db).handle(_ -> {
-
+            contentParser.parseTest(dbConnection).handle(_ -> {
             });
             #else
             var contentParser = Creation.contentParser();
-            parseWorker(db,warc,parse).handle((outcome) -> {
-                switch (outcome) {
-                    case Success(_):
-                        linkMain(db);
-                        trace("Poggers completed");
-                    case Failure(failure):
-                        trace(failure.callStack);
-                        trace('grr failure $failure');
-                }
-            });
+            for (warcFileName in findAvaliableWarcs()) {
+                var warc = new WARCParser(Fs.createReadStream(warcFileName));
+                parseWorker(dbConnection,warc,contentParser).handle((outcome) -> {
+                    switch (outcome) {
+                        case Success(_):
+                            linkMain(dbConnection);
+                            trace("Poggers completed");
+                        case Failure(failure):
+                            trace(failure.callStack);
+                            trace('grr failure $failure');
+                    }
+                });
+            }
             #end
         });
-        // linkMain(db);
-        
     }
 }

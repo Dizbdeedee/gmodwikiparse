@@ -24,7 +24,7 @@ typedef WarcData = {
 
 
 interface ContentParser {
-    function parse(content:WARCResult):Promise<Noise>;
+    function parse(dbConnection:data.WikiDB,content:WARCResult):Promise<Noise>;
 }
 
 typedef Tests = {
@@ -52,13 +52,10 @@ typedef SavedResult = {
     buffer : String
 }
 
-@:await
 class ContentParserDef implements ContentParser {
 
-    final dbConnection:data.WikiDB;
-
     final funcResolver:FunctionResolver;
-    
+
     final gclassResolver:GClassResolver;
 
     final parseChooser:ParseChooser;
@@ -68,12 +65,14 @@ class ContentParserDef implements ContentParser {
     final structResolver:StructResolver;
 
     final enumResolver:GEnumResolver;
-    
+
     final libraryResolver:LibraryResolver;
 
     final hookResolver:HookResolver;
 
     final unparsedURL:Array<String> = [];
+
+    final textDecoder = new TextDecoder();
 
     final tests:Tests = {
         funcs: [],
@@ -96,7 +95,6 @@ class ContentParserDef implements ContentParser {
     }
 
     public function new (_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
-        dbConnection = _dbConnection;
         parseChooser = _parseChooser;
         funcResolver = initBundle._funcResolver;
         gclassResolver = initBundle._gclassResolver;
@@ -116,23 +114,18 @@ class ContentParserDef implements ContentParser {
         return handledPromise.noise();
     }
 
-
     function updateOutputTests() {
         Fs.writeFileSync("tests.json",Json.stringify(tests));
     }
 
-    static final decoder:TextDecoder = new TextDecoder();
-
     function loadHTML(dbConnection:data.WikiDB,parsedWarc:WARCResult):Promise<Noise> {
         final url = parsedWarc.warcTargetURI;
-        // trace(parsedWarc.payload);
-        final buf = decoder.decode(parsedWarc.payload);
-        // var doc = Htmlparser2.parseDocument(buf);
+        final buf = textDecoder.decode(parsedWarc.payload);
         final jq = Cheerio.load(buf);
         return processExceptions(url,jq).next((processed) -> {
             if (processed) return Promise.NOISE;
             trace('URI $url');
-            return switch (parseChooser.choose(jq,url)) { 
+            return switch (parseChooser.choose(jq,url)) {
                 case NoMatch:
                     trace('Unmatched $url');
                     unparsedURL.push(url);
@@ -158,7 +151,6 @@ class ContentParserDef implements ContentParser {
                     #else
                     enumResolver.publish(dbConnection,unresolved);
                     #end
-                    
                 case Struct:
                     updateTest(tests.struct,url,buf);
                     sortedURL.struct.push(url);
@@ -188,7 +180,7 @@ class ContentParserDef implements ContentParser {
                     Promise.NOISE;
                     #else
                     panelResolver.publish(dbConnection,unresolved);
-                    #end   
+                    #end
                 case Library:
                     updateTest(tests.libs,url,buf);
                     sortedURL.libs.push(url);
@@ -235,6 +227,12 @@ class ContentParserDef implements ContentParser {
                 Promise.resolve(true);
             case "https://wiki.facepunch.com/gmod/SKIN_Hooks":
                 trace("Skin hooks hooks");
+                Promise.resolve(true);
+            case "https://wiki.facepunch.com/gmod/2D_Rendering_Hooks":
+                trace("Not hooks");
+                Promise.resolve(true);
+            case "https://wiki.facepunch.com/gmod/3D_Rendering_Hooks":
+                trace("Not hooks");
                 Promise.resolve(true);
             default:
                 Promise.resolve(false);

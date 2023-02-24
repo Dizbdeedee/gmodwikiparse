@@ -1,4 +1,3 @@
-
 import generators.library.LibraryResolver;
 import generators.struct.StructResolver;
 import generators.panel.PanelResolver;
@@ -21,10 +20,8 @@ interface ContentParserTest {
 
 class ContentParserTestDef implements ContentParserTest {
 
-    final dbConnection:data.WikiDB;
-
     final funcResolver:FunctionResolver;
-    
+
     final gclassResolver:GClassResolver;
 
     final parseChooser:ParseChooser;
@@ -38,7 +35,7 @@ class ContentParserTestDef implements ContentParserTest {
     final hookResolver:HookResolver;
 
     final libraryResolver:LibraryResolver;
-    
+
     public function new (_parseChooser:ParseChooser,initBundle:ContentParserResolversInitBundle) {
         parseChooser = _parseChooser;
         funcResolver = initBundle._funcResolver;
@@ -77,7 +74,7 @@ class ContentParserTestDef implements ContentParserTest {
         for (hook in json.hooks) {
             arr.push(Promise.lazy(() -> loadHTMLTest(dbConnection,hook)));
         }
-        
+
         return Promise.inSequence(arr);
     }
 

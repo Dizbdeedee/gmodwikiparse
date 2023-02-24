@@ -14,7 +14,6 @@ interface FunctionResolver {
     function publish(conn:data.WikiDB,page:UnresolvedFunctionPage):Promise<Noise>;
 }
 
-@:await
 class FunctionResolverDef implements FunctionResolver {
 
     final funcParser:UnresolvedFunctionParse;
@@ -24,7 +23,7 @@ class FunctionResolverDef implements FunctionResolver {
     final retParser:UnresolvedFunctionRetParse;
 
     final descPublisher:DescriptionPublisher;
-    
+
     public function new(_funcParser:UnresolvedFunctionParse,
         _argParser:UnresolvedFunctionArgParse,
         _retParser:UnresolvedFunctionRetParse,
@@ -46,43 +45,42 @@ class FunctionResolverDef implements FunctionResolver {
         };
     }
 
-    @:async public function publish(conn:data.WikiDB,page:UnresolvedFunctionPage) {
-        var funcID = @:await publishFunction(conn,page.func);
-        var promiseArgs = page.args.map((x) -> 
-            publishFuncArg(conn,funcID,x));
-        var promiseRets = page.rets.map((x) -> publishFuncRet(conn,funcID,x));
-        var cumulativePromiseArgs:Promise<Noise> = Promise.NOISE;
-        for (p in promiseArgs) {
-            cumulativePromiseArgs = cumulativePromiseArgs.next((_) -> p.noise());
-        }
-        @:await cumulativePromiseArgs.eager();
-        var cumulativePromiseRets:Promise<Noise> = Promise.NOISE;
-        for (p in promiseRets) {
-            cumulativePromiseRets = cumulativePromiseRets.next((_) -> p.noise());
-        }
-        @:await cumulativePromiseRets.eager();
-        // trace("wait forargs");
-        // @:await Promise.inSequence(promiseArgs).eager();
-        // trace("wait for rets");
-        // @:await Promise.inSequence(promiseRets).eager();
-        return Noise;
-    }
-
-    @:async function publishFunction(conn:data.WikiDB,x:UnresolvedFunction) {
-        var descID = @:await publishDescOrNull(conn,x.description);
-        return @:await conn.Function.insertOne({
-            id: null,
-            name: x.name,
-            url: x.url,
-            description: descID,
-            isHook: x.isHook,
-            stateClient: x.stateClient,
-            stateMenu: x.stateMenu,
-            stateServer: x.stateServer,
-            isInternal: x.isInternal,
-            isDeprecated: x.isDeprecated
+    public function publish(conn:data.WikiDB,page:UnresolvedFunctionPage) {
+        return publishFunction(conn,page.func).next((funcID) -> {
+            var promiseArgs = page.args.map((x) ->
+                publishFuncArg(conn,funcID,x));
+            var promiseRets = page.rets.map((x) -> publishFuncRet(conn,funcID,x));
+            var cumulativePromiseArgs:Promise<Noise> = Promise.NOISE;
+            for (p in promiseArgs) {
+                cumulativePromiseArgs = cumulativePromiseArgs.next((_) -> p.noise());
+            }
+        return cumulativePromiseArgs.next((_) -> {
+            var cumulativePromiseRets:Promise<Noise> = Promise.NOISE;
+            for (p in promiseRets) {
+                cumulativePromiseRets = cumulativePromiseRets.next((_) -> p.noise());
+            }
+        return cumulativePromiseRets.noise();
+        });
         });
     }
+
+    function publishFunction(conn:data.WikiDB,x:UnresolvedFunction) {
+        return publishDescOrNull(conn,x.description)
+        .next((descID) ->
+            conn.Function.insertOne({
+                id: null,
+                name: x.name,
+                url: x.url,
+                description: descID,
+                isHook: x.isHook,
+                stateClient: x.stateClient,
+                stateMenu: x.stateMenu,
+                stateServer: x.stateServer,
+                isInternal: x.isInternal,
+                isDeprecated: x.isDeprecated
+            })
+        );
+        }
 
     function publishDescOrNull(conn:data.WikiDB,x:UnresolvedDescription):Promise<Null<data.Id<data.WikiDB.DescriptionStorage>>> {
         return if (x.length < 1) {
@@ -109,7 +107,7 @@ class FunctionResolverDef implements FunctionResolver {
 
     function publishFuncRet(conn:data.WikiDB,funcID:Int,unresolvedRet:UnresolvedFunctionRet) {
         return publishDescOrNull(conn,unresolvedRet.description).next(
-        (descID) -> 
+        (descID) ->
             conn.FunctionRet.insertOne({
                 returnNo : unresolvedRet.returnNo,
                 funcid : funcID,
@@ -117,7 +115,7 @@ class FunctionResolverDef implements FunctionResolver {
                 typeURL : unresolvedRet.typeURL,
                 desc : descID
             }));
-        
+
     }
 }
 
