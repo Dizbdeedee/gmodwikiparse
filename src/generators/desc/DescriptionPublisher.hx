@@ -20,12 +20,11 @@ class DescriptionPublisherDef implements DescriptionPublisher {
         dbConnection = conn;
         if (descNodes.length < 1) return Promise.reject(new Error("Need at least one descNode to publish..."));
         return publishDescToDB(descNodes)
-            .next(descID -> {trace("VALIDATING");return validateInsertion(descNodes,descID).swap(descID);}
+            .next(descID -> {return validateInsertion(descNodes,descID).swap(descID);}
         );
     }
 
     function validateInsertion(unresolvedDescArr:UnresolvedDescription,id:Id<DescriptionStorage>):Promise<Bool> {
-        trace('validating $id');
         return dbConnection.DescItem
         .leftJoin(dbConnection.DescriptionStorage)
         .on(DescriptionStorage.descItem == DescItem.id)
@@ -71,13 +70,12 @@ class DescriptionPublisherDef implements DescriptionPublisher {
         var promises:Array<Promise<Id<DescItem>>> = [];
         for (desc in descItemsArr) {
             promises.push(Promise.lazy(() -> {
-                trace('lastpublishID $lastPublishID');
                 var what = lastPublishID;
                 return dbConnection.DescItem.insertOne({
                     id : lastPublishID++,
                     type : desc.type,
                     textValue : desc.textValue
-                            }).next(x -> {trace('descitem $what'); return Promise.resolve(x);});
+                }).next(x -> {return Promise.resolve(x);});
             }));
         }
         return Promise.inSequence(promises);
@@ -104,7 +102,6 @@ class DescriptionPublisherDef implements DescriptionPublisher {
     }
 
     function createDescriptionStorages(descItemIDSS:Array<Id<DescItem>>) {
-        trace(descItemIDSS);
         return
         assignFirstDescriptionStorage(descItemIDSS[0])
         .next((autoDescStoreID) -> {

@@ -1,4 +1,3 @@
-
 import js.html.Text;
 import ts.Undefined;
 import js.Syntax;
@@ -65,7 +64,7 @@ class ParseChooserDef implements ParseChooser {
     //an age old question. all together now
     function liborGClass(jq:CheerioAPI,url:String):LibOrGClass {
         if (getOptCheer(jq,"div.type") == None) return None;
-        var matchText = jq.call("div.member_line > a.subject").first().attr("href");
+        var matchText = jq.call("h1:contains('Methods') ~ div.section > div.member_line > a.subject").first().attr("href");
         var pageName = getPageName(url);
         var regexLib = new RegExp('$pageName[.]');
         var regexGClass = new RegExp('$pageName[:]');

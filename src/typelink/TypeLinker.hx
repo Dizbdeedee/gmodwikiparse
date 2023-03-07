@@ -5,7 +5,8 @@ import data.WikiDB;
 import js.node.Fs;
 using tink.CoreApi;
 
-class TypeLinker {
+@:await class TypeLinker {
+
     public function new() {
 
     }
@@ -34,56 +35,118 @@ class TypeLinker {
             iterate(null);
             return () -> cancel = true;
         });
-       
     }
 
-    public static function typeLinkage(dbConnection:data.WikiDB):Promise<Noise> {
-        return dbConnection.GClass.all().next(
-        (arr) -> {
-            var resolvedTypes:Array<data.WikiDB.Link_ResolvedTypes> = arr.map(
-                (gclass) -> {
-                    return {
+    public static function addGClasses(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.GClass.all()
+        .next((arr) -> {
+            var resolvedTypes:Array<data.WikiDB.Link_ResolvedTypes> =
+                arr.map((gclass) ->
+                    {
                         typeID: null,
                         name: gclass.name,
                         url: gclass.url
                     }
-                }
-            );
+                );
             return dbConnection.Link_ResolvedTypes.insertMany(resolvedTypes);
         });
-        // dbConnection.Link_ResolvedTypes.insertMany()
     }
 
-    public static function typeNext(dbConnection:data.WikiDB):Promise<Noise> {
-        return dbConnection.FunctionArg.all().next(
-        (arr) -> {
-            // trace(arr);
-            var resolvedTypes = [for (funcArg in arr) resolveType(funcArg,dbConnection)];
-            return Promise.inSequence(resolvedTypes);
-            // var typeLinks:Array<Link_FunctionArgTypeResolve> = arr.map((funcArg) -> {
-            //     var resolvedType = dbConnection.Link_ResolvedTypes
-            //     return {
-            //         funcArgNo: funcArg.argumentNo,
-            //         funcid: funcArg.funcid,
-            //         typeID: 
-            //     }
-            // });
-            // return Promise.NOISE;
+    public static function addPanels(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.Panel.all()
+        .next((arr) -> {
+            var resolvedTypes:Array<data.WikiDB.Link_ResolvedTypes> =
+                arr.map((panel) -> {
+                    typeID: null,
+                    name: panel.name,
+                    url: panel.url
+                });
+            return dbConnection.Link_ResolvedTypes.insertMany(resolvedTypes);
         });
     }
 
-    static function resolveType(funcArg:data.WikiDB.FunctionArg,dbConnection:data.WikiDB):Promise<Noise> {
-        // trace(funcArg);
+    static function getFunctionFromLibraryURL(dbConnection:data.WikiDB,liburl:data.WikiDB.LibraryURL):Promise<data.Id<Function>> {
+        return dbConnection
+        .Function.select({
+            functionID: Function.id
+        }).where(Function.url == liburl.url)
+        .first().next((res) -> {
+            return res.functionID;
+        });
+    }
+
+    // static function insertLibraryOwns():Promise<Noise> {
+
+    // }
+
+    @:async public static function resolveLibraryOwns(dbConnection:data.WikiDB):Promise<Noise> {
+        var libraryURLS = @:await dbConnection.LibraryURL.all();
+        var funcResults = libraryURLS.map((libURL) ->
+        Future.lazy(() -> getFunctionFromLibraryURL(dbConnection,libURL)));
+        return Promise.NOISE;
+    }
+
+
+    public static function typeFunctionRets(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.FunctionRet.all()
+        .next((functionRetArr) -> {
+            var resolvedTypesFuncRet = functionRetArr.map(resolveFuncRetType.bind(_,dbConnection));
+            return Promise.inSequence(resolvedTypesFuncRet);
+        });
+    }
+
+    public static function typeFunctionArgs(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.FunctionArg.all()
+        .next((functionArgArr) -> {
+            var itemAndTypesFut = functionArgArr.map(linkFunctionArgToType.bind(_,dbConnection));
+            return Future.inSequence(itemAndTypesFut);
+        })
+        .next((itemAndTypeOptArr) -> {
+            var itemLinkPromiseArr = [];
+            for (i in itemAndTypeOptArr) {
+                switch (i) {
+                    case Some({typeID : typeID, itemID: funcArgID}):
+                        var addLinkPromise = Promise.lazy(() ->
+                            dbConnection.Link_FunctionArgTypeResolve.insertOne({funcArgNo: funcArgID, typeID: typeID}));
+                        itemAndTypePromiseArr.push(addLinkPromise);
+                    default:
+                }
+            }
+            return Promise.inSequence(itemLinkPromiseArr);
+        }).noise();
+    }
+
+    static function linkFunctionArgToType(funcArg:data.WikiDB.FunctionArg,dbConnection:data.WikiDB):Future<haxe.ds.Option<ItemAndType>> {
         return dbConnection.Link_ResolvedTypes.select({
             typeID: Link_ResolvedTypes.typeID
         }).where(funcArg.typeURL == Link_ResolvedTypes.url).first()
         .next((result) -> {
-            // trace(result);
-            return Promise.NOISE;
+
+            return Some({typeID: result.typeID, itemID: funcArg.id});
         }).recover((err) -> {
-            trace(funcArg.typeURL);
+            trace('Unmatched funcArg: ${funcArg.typeURL}');
             // trace(err);
-            return Future.NOISE;
+            return None;
         });
     }
+
+    static function resolveFuncRetType(funcRet:data.WikiDB.FunctionRet,dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.Link_ResolvedTypes.select({
+            typeID: Link_ResolvedTypes.typeID
+        }).where(funcRet.typeURL == Link_ResolvedTypes.url).first()
+        .next((result) -> {
+            return Promise.NOISE;
+        }).recover((err) -> {
+            trace('Unmatched funcRet: ${funcRet.typeURL}');
+            return Future.NOISE;
+        });
+
+    }
+
+
+}
+
+typedef ItemAndType = {
+    itemID : Int,
+    typeID : Int
 }

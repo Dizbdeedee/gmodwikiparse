@@ -40,6 +40,8 @@ enum abstract DescItemType(SmallInt) from SmallInt to SmallInt {
     var END_KEY;
     var BEGIN_REMOVED;
     var END_REMOVED;
+    var BEGIN_NUMBER_LIST;
+    var END_NUMBER_LIST;
 }
 
 //linked lists are generally a bad idea... cool
@@ -49,11 +51,9 @@ typedef DescItem = {
     var id(default,never):Id<DescItem>;
     var ?textValue(default,never):MediumText;
     var type(default,never):DescItemType;
-
 }
 
 typedef DescriptionStorage = {
-
     var id(default,never):Id<DescriptionStorage>;
     var descItem(default,never):Id<DescItem>;
 }
@@ -74,6 +74,9 @@ typedef Function = {
 }
 
 typedef FunctionArg = {
+    @:primary
+    @:autoIncrement
+    var id(default,never):SmallInt;
     var argumentNo(default,never):SmallInt;
     var funcid(default,never):Id<Function>;
     var name(default,never):VarChar<255>;
@@ -84,6 +87,8 @@ typedef FunctionArg = {
 }
 
 typedef FunctionRet = {
+    @:primary
+    @:autoIncrement
     var returnNo(default,never):SmallInt;
     var funcid(default,never):Id<Function>;
     var type(default,never):VarChar<255>;
@@ -155,7 +160,7 @@ typedef Library = {
 typedef LibraryURL = {
     var urlNo(default,never):SmallInt;
     var libraryID(default,never):Id<Library>;
-    var url:VarChar<1024>;
+    var url(default,never):VarChar<1024>;
 }
 
 typedef LibraryField = {
@@ -178,7 +183,7 @@ typedef Hook = {
 typedef HookURL = {
     var urlNo(default,never):SmallInt;
     var hookID(default,never):Id<Hook>;
-    var url:VarChar<1024>;
+    var url(default,never):VarChar<1024>;
 }
 
 typedef Panel = {
@@ -249,9 +254,19 @@ typedef Link_ResolvedTypes = {
     var url(default,never):Null<VarChar<255>>;
 }
 
+// typedef Link_MultiType = {
+//     var linkage(default,never):Id<Link_MultiType>;
+//     var typeID(default,never):Id<Link_ResolvedTypes>;
+// }
+
+typedef Link_Category = {
+    var cid(default,never):Id<Link_Category>;
+    var name(default,never):VarChar<255>;
+    var rank(default,never):SmallInt;
+}
+
 typedef Link_FunctionArgTypeResolve = {
     var funcArgNo(default,never):SmallInt;
-    var funcID(default,never):Id<Function>;
     var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
@@ -271,7 +286,9 @@ typedef Link_StructMemberResolve = {
     Hook,HookURL,
     Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,
     Link_ResolvedTypes,Link_FunctionArgTypeResolve,
-    Link_FunctionRetTypeResolve,Link_StructMemberResolve)
+    Link_FunctionRetTypeResolve,Link_StructMemberResolve,
+    Link_Category
+)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;
 

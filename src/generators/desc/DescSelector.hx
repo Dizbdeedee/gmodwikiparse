@@ -660,3 +660,39 @@ class ItalicsSelector extends DescSelector {
         ];
     }
 }
+
+class NumberListSelector extends DescSelector {
+
+    final descParser:DescriptionParser;
+
+    public function new(_descParser:DescriptionParser) {
+        descParser = _descParser;
+    }
+
+    function testElement(elem:Cheerio<Dynamic>) {
+        return elem.is("ol");
+    }
+
+    override function parse(elem:Cheerio<Dynamic>,jq:CheerioAPI):Array<DescItem> {
+        return ([
+            [
+                {
+                    id: null,
+                    textValue: null,
+                    type: BEGIN_NUMBER_LIST,
+
+                }
+            ],
+            descParser.parseDescNode(elem,jq),
+            [
+                {
+                    id: null,
+                    textValue: null,
+                    type: END_NUMBER_LIST,
+
+                }
+            ]
+        ] : Array<Array<DescItem>>).flatten();
+    }
+
+}

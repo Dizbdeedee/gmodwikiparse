@@ -17,14 +17,13 @@ import generators.genum.GEnumResolver;
 import ParseUtil;
 using tink.CoreApi;
 
+interface ContentParser {
+    function parse(dbConnection:data.WikiDB,content:WARCResult):Promise<Noise>;
+}
+
 typedef WarcData = {
     url : String,
     buff : Dynamic
-}
-
-
-interface ContentParser {
-    function parse(dbConnection:data.WikiDB,content:WARCResult):Promise<Noise>;
 }
 
 typedef Tests = {

@@ -54,7 +54,8 @@ class Creation {
                     new ImgSelector(),
                     new ListItemSelector(),
                     new CodeFeatureSelector(descParserLZ),
-                    new BoldSelector()
+                    new BoldSelector(),
+                    new NumberListSelector(descParserLZ)
                 ]);
                 descParserLZ.resolve(_descParser);
                 _descParser;
@@ -119,7 +120,8 @@ class Creation {
                     new ImgSelector(),
                     new ListItemSelector(),
                     new CodeFeatureSelector(descParserLZ),
-                    new BoldSelector()
+                    new BoldSelector(),
+                    new NumberListSelector(descParserLZ)
                 ]);
                 descParserLZ.resolve(_descParser);
                 _descParser;

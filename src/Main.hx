@@ -36,48 +36,60 @@ class Main {
                 Promise.resolve(true);
             }
         }
+
         return warcParse.parse().toPromise().next(processWARC);
     }
 
 
-    static function createDBs(db:WikiDB):Promise<Noise> {
+    static function createDBs(dbConnection:WikiDB):Promise<Noise> {
         var databasePromises = [
-            db.DescItem.create(true),
-            db.DescriptionStorage.create(true),
-            db.Function.create(true),
-            db.FunctionArg.create(true),
-            db.FunctionRet.create(true),
-            db.LuaExample.create(true),
-            db.Struct.create(true),
-            db.StructMember.create(true),
-            db.GClass.create(true),
-            db.Library.create(true),
-            db.GEnum.create(true),
-            db.GEnumMembers.create(true),
-            db.GClassURL.create(true),
-            db.Panel.create(true),
-            db.PanelURL.create(true),
-            db.Hook.create(true),
-            db.HookURL.create(true),
-            db.LibraryURL.create(true),
-            db.LibraryField.create(true)
-            // db.Link_ResolvedTypes.create(true)
+            dbConnection.DescItem.create(true),
+            dbConnection.DescriptionStorage.create(true),
+            dbConnection.Function.create(true),
+            dbConnection.FunctionArg.create(true),
+            dbConnection.FunctionRet.create(true),
+            dbConnection.LuaExample.create(true),
+            dbConnection.Struct.create(true),
+            dbConnection.StructMember.create(true),
+            dbConnection.GClass.create(true),
+            dbConnection.Library.create(true),
+            dbConnection.GEnum.create(true),
+            dbConnection.GEnumMembers.create(true),
+            dbConnection.GClassURL.create(true),
+            dbConnection.Panel.create(true),
+            dbConnection.PanelURL.create(true),
+            dbConnection.Hook.create(true),
+            dbConnection.HookURL.create(true),
+            dbConnection.LibraryURL.create(true),
+            dbConnection.LibraryField.create(true),
+            dbConnection.Link_FunctionArgTypeResolve.create(true),
+            dbConnection.Link_Category.create(true)
+            // dbConnection.Link_ResolvedTypes.create(true)
         ];
         return Promise.inParallel(databasePromises);
     }
 
-    static function linkMain(db:WikiDB) {
-        db.Link_ResolvedTypes.drop().flatMap((_) ->
-            db.Link_ResolvedTypes.create(true)
+    static function linkMain(dbConnection:WikiDB) {
+        dbConnection.Link_ResolvedTypes.drop().flatMap((_) ->
+            dbConnection.Link_ResolvedTypes.create(true)
             .next(_ -> {
-                trace("Poorly...");
-                TypeLinker.addLuaTypes(db).noise();
+                TypeLinker.addLuaTypes(dbConnection).noise();
             })
             .next(_ -> {
-                TypeLinker.typeLinkage(db).noise();
+                TypeLinker.addGClasses(dbConnection).noise();
             })
             .next(_ -> {
-                TypeLinker.typeNext(db).noise();
+                TypeLinker.addPanels(dbConnection).noise();
+            })
+            .next(x -> {
+                trace(x);
+                TypeLinker.typeFunctionArgs(dbConnection).noise();
+            })
+            .next(_ -> {
+                TypeLinker.typeFunctionRets(dbConnection).noise();
+            })
+            .next(_ -> {
+                TypeLinker.resolveLibraryOwns(dbConnection).noise();
             })
         ).handle((x) -> {
             trace(x);

@@ -94,13 +94,14 @@ class FunctionResolverDef implements FunctionResolver {
         return publishDescOrNull(conn,unresolvedArg.description)
         .next((descID) -> {
             conn.FunctionArg.insertOne({
-                argumentNo : unresolvedArg.argumentNo,
-                funcid : funcID,
-                name : unresolvedArg.name,
-                type : unresolvedArg.type,
-                typeURL : unresolvedArg.typeURL,
-                def : unresolvedArg.def,
-                description : descID
+                id: null,
+                argumentNo: unresolvedArg.argumentNo,
+                funcid: funcID,
+                name: unresolvedArg.name,
+                type: unresolvedArg.type,
+                typeURL: unresolvedArg.typeURL,
+                def: unresolvedArg.def,
+                description: descID
             });
         });
     }
@@ -109,11 +110,11 @@ class FunctionResolverDef implements FunctionResolver {
         return publishDescOrNull(conn,unresolvedRet.description).next(
         (descID) ->
             conn.FunctionRet.insertOne({
-                returnNo : unresolvedRet.returnNo,
-                funcid : funcID,
-                type : unresolvedRet.type,
-                typeURL : unresolvedRet.typeURL,
-                desc : descID
+                returnNo: unresolvedRet.returnNo,
+                funcid: funcID,
+                type: unresolvedRet.type,
+                typeURL: unresolvedRet.typeURL,
+                desc: descID
             }));
 
     }
