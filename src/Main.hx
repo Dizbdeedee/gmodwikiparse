@@ -63,6 +63,7 @@ class Main {
             dbConnection.LibraryURL.create(true),
             dbConnection.LibraryField.create(true),
             dbConnection.Link_FunctionArgTypeResolve.create(true),
+            dbConnection.Link_FunctionRetTypeResolve.create(true),
             dbConnection.Link_Category.create(true)
             // dbConnection.Link_ResolvedTypes.create(true)
         ];
@@ -83,7 +84,7 @@ class Main {
             })
             .next(x -> {
                 trace(x);
-                TypeLinker.typeFunctionArgs(dbConnection).noise();
+                return TypeLinker.typeFunctionArgs(dbConnection).noise();
             })
             .next(_ -> {
                 TypeLinker.typeFunctionRets(dbConnection).noise();

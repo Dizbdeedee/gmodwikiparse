@@ -76,7 +76,7 @@ typedef Function = {
 typedef FunctionArg = {
     @:primary
     @:autoIncrement
-    var id(default,never):SmallInt;
+    var id(default,never):Id<FunctionArg>;
     var argumentNo(default,never):SmallInt;
     var funcid(default,never):Id<Function>;
     var name(default,never):VarChar<255>;
@@ -89,6 +89,7 @@ typedef FunctionArg = {
 typedef FunctionRet = {
     @:primary
     @:autoIncrement
+    var id(default,never):Id<FunctionRet>;
     var returnNo(default,never):SmallInt;
     var funcid(default,never):Id<Function>;
     var type(default,never):VarChar<255>;
@@ -266,12 +267,12 @@ typedef Link_Category = {
 }
 
 typedef Link_FunctionArgTypeResolve = {
-    var funcArgNo(default,never):SmallInt;
+    var funcArgNo(default,never):Id<FunctionArg>;
     var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
 typedef Link_FunctionRetTypeResolve = {
-    @:primary var funcRetID(default,never):Id<FunctionRet>;
+    var funcRetID(default,never):Id<FunctionRet>;
     var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 

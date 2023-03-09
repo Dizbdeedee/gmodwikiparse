@@ -110,6 +110,7 @@ class FunctionResolverDef implements FunctionResolver {
         return publishDescOrNull(conn,unresolvedRet.description).next(
         (descID) ->
             conn.FunctionRet.insertOne({
+                id: null,
                 returnNo: unresolvedRet.returnNo,
                 funcid: funcID,
                 type: unresolvedRet.type,
