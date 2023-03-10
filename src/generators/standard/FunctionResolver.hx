@@ -6,6 +6,7 @@ import generators.desc.DescriptionPublisher;
 import generators.standard.UnresolvedFunctionArgParse.UnresolvedFunctionArg;
 import generators.standard.UnresolvedFunctionRetParse.UnresolvedFunctionRet;
 import data.Id;
+import Util.PromiseArray;
 using tink.CoreApi;
 
 
@@ -14,7 +15,7 @@ interface FunctionResolver {
     function publish(conn:data.WikiDB,page:UnresolvedFunctionPage):Promise<Noise>;
 }
 
-class FunctionResolverDef implements FunctionResolver {
+@:await class FunctionResolverDef implements FunctionResolver {
 
     final funcParser:UnresolvedFunctionParse;
 
@@ -45,79 +46,71 @@ class FunctionResolverDef implements FunctionResolver {
         };
     }
 
-    public function publish(conn:data.WikiDB,page:UnresolvedFunctionPage) {
-        return publishFunction(conn,page.func).next((funcID) -> {
-            var promiseArgs = page.args.map((x) ->
-                publishFuncArg(conn,funcID,x));
-            var promiseRets = page.rets.map((x) -> publishFuncRet(conn,funcID,x));
-            var cumulativePromiseArgs:Promise<Noise> = Promise.NOISE;
-            for (p in promiseArgs) {
-                cumulativePromiseArgs = cumulativePromiseArgs.next((_) -> p.noise());
-            }
-        return cumulativePromiseArgs.next((_) -> {
-            var cumulativePromiseRets:Promise<Noise> = Promise.NOISE;
-            for (p in promiseRets) {
-                cumulativePromiseRets = cumulativePromiseRets.next((_) -> p.noise());
-            }
-        return cumulativePromiseRets.noise();
-        });
-        });
+    @:async public function publish(dbConnection:data.WikiDB,page:UnresolvedFunctionPage) {
+        var funcArgsPublishProm = new PromiseArray();
+        var funcRetsPublishProm = new PromiseArray();
+        var funcID = @:await publishFunction(dbConnection,page.func);
+        for (pageArg in page.args) {
+            funcArgsPublishProm.add(publishFuncArg(dbConnection,funcID,pageArg));
+        }
+        for (pageRet in page.rets) {
+            funcRetsPublishProm.add(publishFuncRet(dbConnection,funcID,pageRet));
+        }
+        return @:await funcArgsPublishProm.inSequence().next(_ -> funcRetsPublishProm.inSequence()).noise();
     }
 
-    function publishFunction(conn:data.WikiDB,x:UnresolvedFunction) {
-        return publishDescOrNull(conn,x.description)
-        .next((descID) ->
-            conn.Function.insertOne({
-                id: null,
-                name: x.name,
-                url: x.url,
-                description: descID,
-                isHook: x.isHook,
-                stateClient: x.stateClient,
-                stateMenu: x.stateMenu,
-                stateServer: x.stateServer,
-                isInternal: x.isInternal,
-                isDeprecated: x.isDeprecated
-            })
-        );
-        }
+    @:async function publishFunction(dbConnection:data.WikiDB,func:UnresolvedFunction) {
+        var descID = @:await publishDescOrNull(dbConnection,func.description);
+        var insertFunc:data.WikiDB.Function = {
+            id: null,
+            name: func.name,
+            url: func.url,
+            description: descID,
+            isHook: func.isHook,
+            stateClient: func.stateClient,
+            stateServer: func.stateServer,
+            stateMenu: func.stateMenu,
+            isInternal: func.isInternal,
+            isDeprecated: func.isDeprecated
+        };
+        return @:await dbConnection.Function.insertOne(insertFunc);
+    }
 
-    function publishDescOrNull(conn:data.WikiDB,x:UnresolvedDescription):Promise<Null<data.Id<data.WikiDB.DescriptionStorage>>> {
-        return if (x.length < 1) {
+
+    function publishDescOrNull(dbConnection:data.WikiDB,unDesc:UnresolvedDescription):Promise<Null<data.Id<data.WikiDB.DescriptionStorage>>> {
+        return if (unDesc.length < 1) {
             Promise.resolve(null);
         } else {
-            descPublisher.publish(conn,x);
+            descPublisher.publish(dbConnection,unDesc);
         }
     }
 
-    function publishFuncArg(conn:data.WikiDB,funcID:Int,unresolvedArg:UnresolvedFunctionArg) {
-        return publishDescOrNull(conn,unresolvedArg.description)
-        .next((descID) -> {
-            conn.FunctionArg.insertOne({
-                id: null,
-                argumentNo: unresolvedArg.argumentNo,
-                funcid: funcID,
-                name: unresolvedArg.name,
-                type: unresolvedArg.type,
-                typeURL: unresolvedArg.typeURL,
-                def: unresolvedArg.def,
-                description: descID
-            });
-        });
+    @:async function publishFuncArg(dbConnection:data.WikiDB,funcID:Int,arg:UnresolvedFunctionArg) {
+        var descID = @:await publishDescOrNull(dbConnection,arg.description);
+        var insertArg:data.WikiDB.FunctionArg = {
+            id: null,
+            argumentNo: arg.argumentNo,
+            funcid: funcID,
+            name: arg.name,
+            type: arg.type,
+            typeURL: arg.typeURL,
+            def: arg.def,
+            description: descID
+        };
+        return @:await dbConnection.FunctionArg.insertOne(insertArg);
     }
 
-    function publishFuncRet(conn:data.WikiDB,funcID:Int,unresolvedRet:UnresolvedFunctionRet) {
-        return publishDescOrNull(conn,unresolvedRet.description).next(
-        (descID) ->
-            conn.FunctionRet.insertOne({
-                id: null,
-                returnNo: unresolvedRet.returnNo,
-                funcid: funcID,
-                type: unresolvedRet.type,
-                typeURL: unresolvedRet.typeURL,
-                desc: descID
-            }));
-
+    @:async function publishFuncRet(dbConnection:data.WikiDB,funcID:Int,ret:UnresolvedFunctionRet) {
+        var descID = @:await publishDescOrNull(dbConnection,ret.description);
+        var insertRet:data.WikiDB.FunctionRet = {
+            id: null,
+            returnNo: ret.returnNo,
+            funcid: funcID,
+            type: ret.type,
+            typeURL: ret.typeURL,
+            desc: descID
+        };
+        return @:await dbConnection.FunctionRet.insertOne(insertRet);
     }
 }
 

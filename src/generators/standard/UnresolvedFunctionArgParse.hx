@@ -34,28 +34,26 @@ class UnresolvedFunctionArgParseDef implements UnresolvedFunctionArgParse {
 
     function parseFuncArg(node:CheerioD,jq:CheerioAPI):UnresolvedFunctionArg {
         var typeNode = getChildCheer(node,"a");
-		var type = typeNode.text();
-		var typeURL = typeNode.attr("href");
-		var argumentNo = Std.parseInt(getChildCheer(node,"span.numbertag").text());
-		var name = getChildCheer(node,"span.name").text();
-		var desc = getChildCheer(node,"div.numbertagindent");
-		var defResult = getChildOptCheer(node,"span.default");
-		
+        var type = typeNode.text();
+        var typeURL = typeNode.attr("href");
+        var argumentNo = Std.parseInt(getChildCheer(node,"span.numbertag").text());
+        var name = getChildCheer(node,"span.name").text();
+        var desc = getChildCheer(node,"div.numbertagindent");
+        var defResult = getChildOptCheer(node,"span.default");
         var descNodes = descParser.parseDescNode(desc,jq);
-
-		return {
-			argumentNo : argumentNo,
-			typeURL : typeURL,
-			type : type,
-			name : name,
-			description : descNodes,
-			def : switch (defResult) {
-				case Some(cheer):
-					cheer.text();
-				case None:
-					null;
-			}
-		};
+        return {
+            argumentNo : argumentNo,
+            typeURL : typeURL,
+            type : type,
+            name : name,
+            description : descNodes,
+            def : switch (defResult) {
+                case Some(cheer):
+                    cheer.text();
+                case None:
+                    null;
+            }
+        };
     }
 
 }

@@ -62,6 +62,9 @@ class Main {
             dbConnection.HookURL.create(true),
             dbConnection.LibraryURL.create(true),
             dbConnection.LibraryField.create(true),
+            dbConnection.Link_LibraryOwns.create(true),
+            dbConnection.Link_GClassOwns.create(true),
+            dbConnection.Link_HookOwns.create(true),
             dbConnection.Link_FunctionArgTypeResolve.create(true),
             dbConnection.Link_FunctionRetTypeResolve.create(true),
             dbConnection.Link_Category.create(true)

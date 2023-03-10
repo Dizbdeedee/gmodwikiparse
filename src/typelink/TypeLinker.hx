@@ -67,35 +67,67 @@ import Util.PromiseArray;
         });
     }
 
-    @:async
-    static function getFunctionFromLibraryURL(dbConnection:data.WikiDB,liburl:data.WikiDB.LibraryURL):data.Id<Function> {
-        var res = @:await dbConnection.Function.select({
+    static function getFunctionIDLibraryIDLink(dbConnection:data.WikiDB,libURL:data.WikiDB.LibraryURL):Future<Option<FunctionIDLibraryIDLink>> {
+        return dbConnection.Function.select({
             functionID: Function.id
-        }).where(Function.url == liburl.url).first();
-        return res.functionID;
+        }).where(Function.url == libURL.url)
+        .first().next(res -> Some({functionID: res.functionID, libraryID: libURL.libraryID}))
+        .recover(_ -> {trace('$libURL not found'); None;});
     }
 
     @:async
-    static function insertLibraryOwns(dbConnection:data.WikiDB,funcID:Int) {
-        return Noise;
+    static function insertLibraryOwns(dbConnection:data.WikiDB,link:FunctionIDLibraryIDLink) {
+        return @:await dbConnection.Link_LibraryOwns.insertOne({
+            libraryID: link.libraryID,
+            funcID: link.functionID
+        });
     }
 
     @:async public static function resolveLibraryOwns(dbConnection:data.WikiDB) {
+        var functionIDLibraryIDLinkFut = new FutureArray();
+        var librariesInsertedProm = new PromiseArray();
+
         var libraryURLS = @:await dbConnection.LibraryURL.all();
-        var funcIDArrPro = [];
         for (libURL in libraryURLS) {
-            funcIDArrPro.push(Promise.lazy(() -> getFunctionFromLibraryURL(dbConnection,libURL)));
+            functionIDLibraryIDLinkFut.add(getFunctionIDLibraryIDLink(dbConnection,libURL));
         }
-        var funcIDArr = @:await Promise.inSequence(funcIDArrPro);
-        var allLibrariesInserted = [];
-        for (funcID in funcIDArr) {
-            allLibrariesInserted.push(Promise.lazy(() -> insertLibraryOwns(dbConnection,funcID)));
+        var linksOptArr = @:await functionIDLibraryIDLinkFut.inSequence();
+        for (linkOpt in linksOptArr) {
+            switch (linkOpt) {
+                case Some(link):
+                    librariesInsertedProm.add(insertLibraryOwns(dbConnection,link));
+                default:
+            }
         }
-        var noise = @:await Promise.inSequence(allLibrariesInserted).noise();
-        return noise;
+        return @:await librariesInsertedProm.inSequence().noise();
     }
 
+    @:async static function getFunctionIDGClassIDLink(dbConnection:data.WikiDB,gclassURL:data.WikiDB.GClassURL):Future<Option<FunctionIDGClassIDLink>> {
+        return dbConnection.Function.select({
+            functionID: Function.id
+        }).where(Function.url == gclassURL.url)
+        .first().next(res -> Some({functionID: res.functionID, gclassID: gclassURL.gclassID}))
+        .recover(_ -> {trace('$gclassURL not found'); None;});
+    }
 
+    @:async public static function resolveGClassOwns(dbConnection:data.WikiDB) {
+        var functionIDGClassIDLinkFut = new FutureArray();
+        var gclassInsertedProm = new PromiseArray();
+
+        var gclassURLArr = @:await dbConnection.GClassURL.all();
+        for (gclassURL in gclassURLArr) {
+            functionIDGClassIDLinkFut.add(getFunctionIDGClassIDLink(dbConnection,gclassURL));
+        }
+        var linksOptArr = @:await functionIDGClassIDLinkFut.inSequence();
+        for (linkOpt in linksOptArr) {
+            switch (linkOpt) {
+                case Some(link):
+                    gclassInsertedProm.add(insertGClassOwns(dbConnection,link));
+                default:
+            }
+        }
+        return @:await gclassInsertedProm.inSequence().noise();
+    }
 
     @:async public static function typeFunctionArgs(dbConnection:data.WikiDB) {
         var linkedFunctionArgsFut:FutureArray<Option<ItemAndType>> = new FutureArray();
@@ -113,8 +145,7 @@ import Util.PromiseArray;
                 default:
             }
         }
-        var allLinksAdded = @:await addLinkProm.inSequence();
-        return allLinksAdded;
+        return addLinkProm.inSequence().noise();
     }
 
     @:async public static function typeFunctionRets(dbConnection:data.WikiDB) {
@@ -167,4 +198,14 @@ import Util.PromiseArray;
 typedef ItemAndType = {
     itemID : Int,
     typeID : Int
+}
+
+typedef FunctionIDLibraryIDLink = {
+    functionID: Int,
+    libraryID : Int
+}
+
+typedef FunctionIDGClassIDLink = {
+    functionID: Int,
+    gclassID : Int
 }

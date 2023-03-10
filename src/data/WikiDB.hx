@@ -138,7 +138,7 @@ typedef GClass = {
 typedef GClassURL = {
     var urlNo(default,never):SmallInt;
     var gclassID(default,never):Id<GClass>;
-    var url:VarChar<1024>;
+    var url(default,never):VarChar<1024>;
 }
 
 typedef GClassField = {
