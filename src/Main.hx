@@ -85,16 +85,21 @@ class Main {
             .next(_ -> {
                 TypeLinker.addPanels(dbConnection).noise();
             })
-            .next(x -> {
-                trace(x);
-                return TypeLinker.typeFunctionArgs(dbConnection).noise();
-            })
+            // .next(x -> {
+            //     TypeLinker.typeFunctionArgs(dbConnection).noise();
+            // })
+            // .next(_ -> {
+            //     TypeLinker.typeFunctionRets(dbConnection).noise();
+            // })
             .next(_ -> {
-                TypeLinker.typeFunctionRets(dbConnection).noise();
+                Generation.writeGClasses(dbConnection).noise();
             })
-            .next(_ -> {
-                TypeLinker.resolveLibraryOwns(dbConnection).noise();
-            })
+            // .next(_ -> {
+            //     TypeLinker.resolveLibraryOwns(dbConnection).noise();
+            // })
+            // .next(_ -> {
+            //     TypeLinker.resolveGClassOwns(dbConnection).noise();
+            // })
         ).handle((x) -> {
             trace(x);
             trace("Done");

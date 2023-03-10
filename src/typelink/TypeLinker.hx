@@ -102,12 +102,20 @@ import Util.PromiseArray;
         return @:await librariesInsertedProm.inSequence().noise();
     }
 
-    @:async static function getFunctionIDGClassIDLink(dbConnection:data.WikiDB,gclassURL:data.WikiDB.GClassURL):Future<Option<FunctionIDGClassIDLink>> {
+    static function getFunctionIDGClassIDLink(dbConnection:data.WikiDB,gclassURL:data.WikiDB.GClassURL):Future<Option<FunctionIDGClassIDLink>> {
         return dbConnection.Function.select({
             functionID: Function.id
         }).where(Function.url == gclassURL.url)
         .first().next(res -> Some({functionID: res.functionID, gclassID: gclassURL.gclassID}))
-        .recover(_ -> {trace('$gclassURL not found'); None;});
+        .recover(_ -> {trace('$gclassURL not found!!'); None;});
+    }
+
+    @:async
+    static function insertGClassOwns(dbConnection:data.WikiDB,link:FunctionIDGClassIDLink) {
+        return @:await dbConnection.Link_GClassOwns.insertOne({
+            gclassID: link.gclassID,
+            funcID: link.functionID
+        });
     }
 
     @:async public static function resolveGClassOwns(dbConnection:data.WikiDB) {
