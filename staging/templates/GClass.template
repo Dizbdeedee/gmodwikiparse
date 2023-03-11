@@ -1,0 +1,10 @@
+package gmod.gclass;
+
+::beginHeader::
+
+::comment::
+extern class ::gclassName:: {
+::allPartialContent::
+}
+
+::endHeader::

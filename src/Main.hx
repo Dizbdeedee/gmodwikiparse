@@ -36,7 +36,6 @@ class Main {
                 Promise.resolve(true);
             }
         }
-
         return warcParse.parse().toPromise().next(processWARC);
     }
 
@@ -117,6 +116,7 @@ class Main {
     }
 
     static function findAvaliableWarcs():Array<String> {
+        
         var avaliable = [];
         for (i in 1...100) {
             var resultExists = existsWarc('${WARC_NAME}_$i');
