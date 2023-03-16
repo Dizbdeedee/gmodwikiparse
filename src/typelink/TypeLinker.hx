@@ -1,42 +1,30 @@
 package typelink;
 
-import js.node.Path;
+import haxe.io.Path;
 import data.WikiDB;
 import js.node.Fs;
 using tink.CoreApi;
 import Util.FutureArray;
 import Util.PromiseArray;
+import typelink.HaxeTypeCategories;
 
 @:await class TypeLinker {
+
+    static final LOCATION_LUATYPES = "luatypes";
 
     public function new() {
 
     }
 
-    public static function addLuaTypes(db:WikiDB) {
-        return new Promise(function (success,failure) {
-            var str = Fs.readdirSync("luatypes");
-            var it = str.iterator();
-            var cancel = false;
-            function iterate(prevOutcome) {
-                if (cancel) return;
-                switch(prevOutcome) {
-                    case null:
-                    case Failure(fail):
-                        failure(fail);
-                    case Success(_):
-                }
-                if (!it.hasNext()) {
-                    success(Noise);
-                } else {
-                    var sqlFilename = it.next();
-                    var sql = Fs.readFileSync(Path.join("luatypes",sqlFilename)).toString();
-                    db.__pool.executeSql(sql).handle(iterate);
-                }
-            }
-            iterate(null);
-            return () -> cancel = true;
-        });
+    @:async public static function addLuaTypes(dbConnection:data.WikiDB):Noise {
+        var processSQLProm = new PromiseArray();
+        var readDir = Fs.readdirSync(LOCATION_LUATYPES);
+        for (sqlFilename in readDir) {
+            var sqlBuf = Fs.readFileSync(Path.join([LOCATION_LUATYPES,sqlFilename]));
+            var sql = sqlBuf.toString();
+            processSQLProm.add(dbConnection.__pool.executeSql(sql));
+        }
+        return @:await processSQLProm.inSequence().noise();
     }
 
     public static function addGClasses(dbConnection:data.WikiDB):Promise<Noise> {
@@ -47,7 +35,8 @@ import Util.PromiseArray;
                     {
                         typeID: null,
                         name: gclass.name,
-                        url: gclass.url
+                        url: gclass.url,
+                        typeCategory: HaxeTypeCategories.gclass
                     }
                 );
             return dbConnection.Link_ResolvedTypes.insertMany(resolvedTypes);
@@ -61,7 +50,8 @@ import Util.PromiseArray;
                 arr.map((panel) -> {
                     typeID: null,
                     name: panel.name,
-                    url: panel.url
+                    url: panel.url,
+                    typeCategory: HaxeTypeCategories.panel
                 });
             return dbConnection.Link_ResolvedTypes.insertMany(resolvedTypes);
         });
@@ -177,9 +167,7 @@ import Util.PromiseArray;
     }
 
     static function linkFunctionArgToType(funcArg:data.WikiDB.FunctionArg,dbConnection:data.WikiDB):Future<haxe.ds.Option<ItemAndType>> {
-        return dbConnection.Link_ResolvedTypes.select({
-            typeID: Link_ResolvedTypes.typeID
-        }).where(funcArg.typeURL == Link_ResolvedTypes.url).first()
+        return dbConnection.Link_ResolvedTypes.where(funcArg.typeURL == Link_ResolvedTypes.url).first()
         .next((result) -> {
             return Some({typeID: result.typeID, itemID: funcArg.id});
         }).recover((err) -> {
@@ -190,9 +178,7 @@ import Util.PromiseArray;
     }
 
     static function linkFunctionRetToType(funcRet:data.WikiDB.FunctionRet,dbConnection:data.WikiDB):Future<haxe.ds.Option<ItemAndType>> {
-        return dbConnection.Link_ResolvedTypes.select({
-            typeID: Link_ResolvedTypes.typeID
-        }).where(funcRet.typeURL == Link_ResolvedTypes.url).first()
+        return dbConnection.Link_ResolvedTypes.where(funcRet.typeURL == Link_ResolvedTypes.url).first()
         .next((result) -> {
             return Some({typeID: result.typeID, itemID: funcRet.id});
         }).recover((err) -> {

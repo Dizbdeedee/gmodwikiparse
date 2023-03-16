@@ -1,2 +1,2 @@
-INSERT INTO Link_ResolvedTypes (name,url) 
-VALUES("any","/gmod/any")
+INSERT INTO Link_ResolvedTypes (name,url,typeCategory) 
+VALUES("any","/gmod/any",3)

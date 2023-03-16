@@ -104,6 +104,7 @@ interface FunctionResolver {
         var descID = @:await publishDescOrNull(dbConnection,ret.description);
         var insertRet:data.WikiDB.FunctionRet = {
             id: null,
+            assignedName: null,
             returnNo: ret.returnNo,
             funcid: funcID,
             type: ret.type,

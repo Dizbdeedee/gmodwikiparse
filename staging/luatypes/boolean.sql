@@ -1,2 +1,2 @@
-INSERT INTO Link_ResolvedTypes (name,url) 
-VALUES("boolean","/gmod/boolean")
+INSERT INTO Link_ResolvedTypes (name,url,typeCategory) 
+VALUES("boolean","/gmod/boolean",4)

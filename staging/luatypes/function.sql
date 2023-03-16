@@ -1,2 +1,2 @@
-INSERT INTO Link_ResolvedTypes (name,url) 
-VALUES("function","/gmod/function")
+INSERT INTO Link_ResolvedTypes (name,url,typeCategory) 
+VALUES("function","/gmod/function",6)

@@ -91,6 +91,8 @@ typedef FunctionRet = {
     @:autoIncrement
     var id(default,never):Id<FunctionRet>;
     var returnNo(default,never):SmallInt;
+    //we give it a name, cause we can but no one ever does :(
+    var assignedName(default,never):VarChar<255>;
     var funcid(default,never):Id<Function>;
     var type(default,never):VarChar<255>;
     var typeURL(default,never):VarChar<255>;
@@ -253,7 +255,17 @@ typedef Link_ResolvedTypes = {
     @:autoIncrement var typeID(default,never):Id<Link_ResolvedTypes>;
     var name(default,never):VarChar<255>;
     var url(default,never):Null<VarChar<255>>;
+    var typeCategory(default,never):Int;
 }
+
+typedef Link_HaxeTypeCategory = {
+    @:primary
+    @:autoIncrement var id(default,never):Id<Link_HaxeTypeCategory>;
+    var name(default,never):VarChar<255>;
+    var location(default,never):VarChar<1024>;
+    var isReplacement(default,never):Bool;
+}
+
 
 // typedef Link_MultiType = {
 //     var linkage(default,never):Id<Link_MultiType>;
@@ -288,7 +300,7 @@ typedef Link_StructMemberResolve = {
     Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,
     Link_ResolvedTypes,Link_FunctionArgTypeResolve,
     Link_FunctionRetTypeResolve,Link_StructMemberResolve,
-    Link_Category
+    Link_Category,Link_HaxeTypeCategory
 )
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;

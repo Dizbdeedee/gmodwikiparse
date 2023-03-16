@@ -66,40 +66,35 @@ class Main {
             dbConnection.Link_HookOwns.create(true),
             dbConnection.Link_FunctionArgTypeResolve.create(true),
             dbConnection.Link_FunctionRetTypeResolve.create(true),
-            dbConnection.Link_Category.create(true)
+            dbConnection.Link_Category.create(true),
+            // dbConnection.Link_HaxeTypeCategory.create(true)
             // dbConnection.Link_ResolvedTypes.create(true)
         ];
         return Promise.inParallel(databasePromises);
     }
 
+    static function dropLinkageTables(dbConnection:data.WikiDB):Promise<Noise> {
+        return dbConnection.Link_ResolvedTypes.drop().flatMap(_ ->
+        dbConnection.Link_ResolvedTypes.create(true).next(_ ->
+        dbConnection.Link_HaxeTypeCategory.drop().flatMap(_ ->
+        dbConnection.Link_HaxeTypeCategory.create(true)))).noise();
+    }
+
     static function linkMain(dbConnection:WikiDB) {
-        dbConnection.Link_ResolvedTypes.drop().flatMap((_) ->
-            dbConnection.Link_ResolvedTypes.create(true)
-            .next(_ -> {
-                TypeLinker.addLuaTypes(dbConnection).noise();
-            })
-            .next(_ -> {
-                TypeLinker.addGClasses(dbConnection).noise();
-            })
-            .next(_ -> {
-                TypeLinker.addPanels(dbConnection).noise();
-            })
-            // .next(x -> {
-            //     TypeLinker.typeFunctionArgs(dbConnection).noise();
-            // })
-            // .next(_ -> {
-            //     TypeLinker.typeFunctionRets(dbConnection).noise();
-            // })
-            .next(_ -> {
-                Generation.writeGClasses(dbConnection).noise();
-            })
-            // .next(_ -> {
-            //     TypeLinker.resolveLibraryOwns(dbConnection).noise();
-            // })
-            // .next(_ -> {
-            //     TypeLinker.resolveGClassOwns(dbConnection).noise();
-            // })
-        ).handle((x) -> {
+        var templates = new Templates.TemplatesDef();
+        var generation = new Generation(templates);
+        dropLinkageTables(dbConnection).next(_ -> {
+        }).next(_ -> {
+            TypeLinker.addLuaTypes(dbConnection).noise();
+        }).next(_ -> {
+            TypeLinker.addGClasses(dbConnection).noise();
+        }).next(_ -> {
+            TypeLinker.addPanels(dbConnection).noise();
+        }).next(_ -> {
+            generation.readTypeCategories(dbConnection).noise();
+        }).next(_ -> {
+            generation.writeGClasses(dbConnection).noise();
+        }).handle(x -> {
             trace(x);
             trace("Done");
         });
@@ -116,7 +111,7 @@ class Main {
     }
 
     static function findAvaliableWarcs():Array<String> {
-        
+
         var avaliable = [];
         for (i in 1...100) {
             var resultExists = existsWarc('${WARC_NAME}_$i');
@@ -156,6 +151,7 @@ class Main {
             });
             #else
             var contentParser = Creation.contentParser();
+
             for (warcFileName in findAvaliableWarcs()) {
                 var warc = new WARCParser(Fs.createReadStream(warcFileName));
                 parseWorker(dbConnection,warc,contentParser).handle((outcome) -> {

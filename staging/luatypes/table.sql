@@ -1,2 +1,2 @@
-INSERT INTO Link_ResolvedTypes (name,url) 
-VALUES("table","/gmod/table")
+INSERT INTO Link_ResolvedTypes (name,url,typeCategory) 
+VALUES("table","/gmod/table",1)

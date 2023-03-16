@@ -1,0 +1,4 @@
+@:multiReturn
+extern class ::multiReturnName:: {
+      ::allPartialContent::
+}
