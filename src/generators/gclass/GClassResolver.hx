@@ -49,7 +49,7 @@ class GClassResolverDef implements GClassResolver {
             url: trimFullURL(url),
             isDeprecated: isDeprecated
         }
-        
+
     }
 
     function parseURL(node:CheerioD,jq:CheerioAPI,no:Int):UnresolvedGClassURL {
@@ -62,7 +62,7 @@ class GClassResolverDef implements GClassResolver {
 
     public function publish(conn:data.WikiDB,page:UnresolvedGClassPage) {
         return descPublisher.publish(conn,page.description)
-        .next((descID) -> 
+        .next((descID) ->
             conn.GClass.insertOne({
                 id: null,
                 description: descID,
@@ -71,7 +71,7 @@ class GClassResolverDef implements GClassResolver {
                 isDeprecated: page.isDeprecated
             })
         .next((gclassID) -> {
-            var urls = page.urls.map((url) -> 
+            var urls = page.urls.map((url) ->
                 Promise.lazy(conn.GClassURL.insertOne({
                     urlNo: url.urlNo,
                     url: url.url,

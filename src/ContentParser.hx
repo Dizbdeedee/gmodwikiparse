@@ -117,9 +117,8 @@ class ContentParserDef implements ContentParser {
         Fs.writeFileSync("tests.json",Json.stringify(tests));
     }
 
-    function loadHTML(dbConnection:data.WikiDB,parsedWarc:WARCResult):Promise<Noise> {
-        final url = parsedWarc.warcTargetURI;
-        final buf = textDecoder.decode(parsedWarc.payload);
+    function startDecoding(dbConnection:data.WikiDB,url,payload):Promise<Noise>  {
+        final buf = textDecoder.decode(payload);
         final jq = Cheerio.load(buf);
         return processExceptions(url,jq).next((processed) -> {
             if (processed) return Promise.NOISE;
@@ -203,6 +202,54 @@ class ContentParserDef implements ContentParser {
 
             }
         });
+    }
+
+    function previousURLExists(dbConnection:data.WikiDB,url:String):Future<Bool> {
+        return {
+            var p_first = dbConnection.PreviousURLSSeen.where(PreviousURLSSeen.url == url).first();
+            var mapToTrueFalse = function (outcome:Outcome<Any,Error>) {
+                return switch (outcome) {
+                    case Success(s):
+                        true;
+                    case Failure({code: 404}):
+                        false;
+                    default:
+                        trace("previousURLExists/ UNMAPPED FAILURE");
+                        throw "no.";
+                }
+            }
+            p_first.map(mapToTrueFalse);
+        }
+    }
+
+    function addURLToDB(dbConnection:data.WikiDB,url:String):Promise<Noise> {
+        return {
+            var urlEntry = {
+                id: null,
+                url: url
+            };
+            var p_addURL = dbConnection.PreviousURLSSeen.insertOne(urlEntry);
+            p_addURL.noise();
+        }
+    }
+
+    function loadHTML(dbConnection:data.WikiDB,parsedWarc:WARCResult):Promise<Noise> {
+        final url = parsedWarc.warcTargetURI;
+        var p_prevURL = previousURLExists(dbConnection,url);
+        return {
+            var onUrlExists:(Bool) -> Promise<Noise>;
+            onUrlExists = function (urlExists) {
+                return if (urlExists) {
+                    trace("Not reading");
+                    Promise.NOISE;
+                } else {
+                    var p_addURLToDB:Promise<Noise> = addURLToDB(dbConnection,url);
+                    var p_decoding:Promise<Noise> = startDecoding(dbConnection,url,parsedWarc.payload);
+                    p_addURLToDB.next((_) -> p_decoding).noise();
+                }
+            };
+            p_prevURL.flatMap(onUrlExists);
+        }
     }
 
     function updateTest(arr:Array<SavedResult>,url:String,buf:String) {

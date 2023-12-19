@@ -67,6 +67,7 @@ class Main {
             dbConnection.Link_FunctionArgTypeResolve.create(true),
             dbConnection.Link_FunctionRetTypeResolve.create(true),
             dbConnection.Link_Category.create(true),
+            dbConnection.PreviousURLSSeen.create(true)
             // dbConnection.Link_HaxeTypeCategory.create(true)
             // dbConnection.Link_ResolvedTypes.create(true)
         ];
@@ -135,10 +136,11 @@ class Main {
     }
 
     public static function mainOthers() {
+        trace("LISTEN TO MY CALLS");
         #if (!linkage && !keepPrev)
-        if (Fs.existsSync("wikidb.sqlite")) {
-            Fs.unlinkSync("wikidb.sqlite");
-        }
+        // if (Fs.existsSync("wikidb.sqlite")) {
+        //     Fs.unlinkSync("wikidb.sqlite");
+        // }
         #end
         var driver = new tink.sql.drivers.Sqlite(s -> "wikidb.sqlite");
         var dbConnection = new WikiDB("wiki_db",driver);
@@ -151,7 +153,7 @@ class Main {
             });
             #else
             var contentParser = Creation.contentParser();
-
+            trace(findAvaliableWarcs());
             for (warcFileName in findAvaliableWarcs()) {
                 var warc = new WARCParser(Fs.createReadStream(warcFileName));
                 parseWorker(dbConnection,warc,contentParser).handle((outcome) -> {

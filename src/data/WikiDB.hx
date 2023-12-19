@@ -92,10 +92,10 @@ typedef FunctionRet = {
     var id(default,never):Id<FunctionRet>;
     var returnNo(default,never):SmallInt;
     //we give it a name, cause we can but no one ever does :(
-    var assignedName(default,never):VarChar<255>;
     var funcid(default,never):Id<Function>;
     var type(default,never):VarChar<255>;
     var typeURL(default,never):VarChar<255>;
+    var ?assignedName(default,never):VarChar<255>;
     var ?desc(default,never):Id<DescriptionStorage>;
 }
 
@@ -227,6 +227,12 @@ typedef GEnumMembers = {
     var ?value(default,never):VarChar<255>;
 }
 
+typedef PreviousURLSSeen = {
+    @:autoIncrement
+    @:primary var id(default,never):Id<PreviousURLSSeen>;
+    var url(default,never):VarChar<255>;
+}
+
 //Lua linkage. All the things we can infer from links, and strings. Lua type inference goes here.
 
 typedef Link_LibraryOwns = {
@@ -300,7 +306,7 @@ typedef Link_StructMemberResolve = {
     Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,
     Link_ResolvedTypes,Link_FunctionArgTypeResolve,
     Link_FunctionRetTypeResolve,Link_StructMemberResolve,
-    Link_Category,Link_HaxeTypeCategory
+    Link_Category,Link_HaxeTypeCategory,PreviousURLSSeen
 )
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;
