@@ -7,12 +7,11 @@ import generators.panel.PanelResolver;
 import generators.gclass.GClassResolver;
 
 typedef ContentParserResolversInitBundle = {
-    _funcResolver : FunctionResolver,
-    _gclassResolver: GClassResolver,
-    _panelResolver : PanelResolver,
-    _structResolver : StructResolver,
-    _enumResolver : GEnumResolver,
-    _libraryResolver : LibraryResolver,
-    _hookResolver : HookResolver,
-
+	_funcResolver:FunctionResolver,
+	_gclassResolver:GClassResolver,
+	_panelResolver:PanelResolver,
+	_structResolver:StructResolver,
+	_enumResolver:GEnumResolver,
+	_libraryResolver:LibraryResolver,
+	_hookResolver:HookResolver,
 }
