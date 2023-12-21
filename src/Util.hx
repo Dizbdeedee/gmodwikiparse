@@ -13,7 +13,7 @@ abstract FutureArray<T>(Array<Future<T>>) {
         return this.push(x);
     }
 
-    public inline static function megaLazy<X>(l:Lazy<Future<X>>) {
+    public inline static function megaLazy<X>(l:Lazy<Future<X>>):Future<X> {
         return new Future(cb -> l.get().handle(cb));
     }
 

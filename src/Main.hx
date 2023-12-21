@@ -12,6 +12,7 @@ import js.node.Fs;
 import data.WikiDB;
 import warcio.WARCParser;
 import warcio.WARCResult;
+import Util.PromiseArray;
 
 typedef Page = {
     address : String,
@@ -75,29 +76,33 @@ class Main {
     }
 
     static function dropLinkageTables(dbConnection:data.WikiDB):Promise<Noise> {
-        return dbConnection.Link_ResolvedTypes.drop().flatMap(_ ->
-        dbConnection.Link_ResolvedTypes.create(true).next(_ ->
-        dbConnection.Link_HaxeTypeCategory.drop().flatMap(_ ->
-        dbConnection.Link_HaxeTypeCategory.create(true)))).noise();
+        return dbConnection.Link_ResolvedTypes.drop().flatMap(res -> {
+            return dbConnection.Link_ResolvedTypes.create(true).next(r -> {
+                return dbConnection.Link_HaxeTypeCategory.drop().flatMap(res -> {
+                    return dbConnection.Link_HaxeTypeCategory.create(true);
+                });
+            });
+        });
     }
 
     static function linkMain(dbConnection:WikiDB) {
         var templates = new Templates.TemplatesDef();
         var generation = new Generation(templates);
-        dropLinkageTables(dbConnection).next(_ -> {
-        }).next(_ -> {
-            TypeLinker.addLuaTypes(dbConnection).noise();
-        }).next(_ -> {
-            TypeLinker.addGClasses(dbConnection).noise();
-        }).next(_ -> {
-            TypeLinker.addPanels(dbConnection).noise();
-        }).next(_ -> {
-            generation.readTypeCategories(dbConnection).noise();
-        }).next(_ -> {
-            generation.writeGClasses(dbConnection).noise();
-        }).handle(x -> {
-            trace(x);
-            trace("Done");
+        var performOps:PromiseArray<Noise> = new PromiseArray();
+        performOps.add(dropLinkageTables(dbConnection));
+        performOps.add(TypeLinker.addLuaTypes(dbConnection).noise());
+        performOps.add(TypeLinker.addGClasses(dbConnection).noise());
+        performOps.add(TypeLinker.addPanels(dbConnection).noise());
+        performOps.add(generation.readTypeCategories(dbConnection).noise());
+        performOps.add(generation.writeGClasses(dbConnection).noise());
+        var p_operations = performOps.inSequence();
+        p_operations.handle((results) -> {
+            switch (results) {
+                case Success(_):
+                    trace("linkMain/ all link ops performed successfully");
+                case Failure(err):
+                    trace(err);
+            }
         });
     }
 
@@ -136,7 +141,6 @@ class Main {
     }
 
     public static function mainOthers() {
-        trace("LISTEN TO MY CALLS");
         #if (!linkage && !keepPrev)
         // if (Fs.existsSync("wikidb.sqlite")) {
         //     Fs.unlinkSync("wikidb.sqlite");

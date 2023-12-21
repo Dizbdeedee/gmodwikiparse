@@ -95,7 +95,7 @@ typedef FunctionRet = {
     var funcid(default,never):Id<Function>;
     var type(default,never):VarChar<255>;
     var typeURL(default,never):VarChar<255>;
-    var ?assignedName(default,never):VarChar<255>;
+    var ?assignedName(default,never):VarChar<255>; //WHAT?
     var ?desc(default,never):Id<DescriptionStorage>;
 }
 
@@ -299,15 +299,41 @@ typedef Link_StructMemberResolve = {
     var typeID(default,never):Id<Link_ResolvedTypes>;
 }
 
-@:tables(DescItem,DescriptionStorage,Function,FunctionArg,FunctionRet,LuaExample,Struct,StructMember,GClass,Library,GEnum,GEnumMembers,
-    GClassURL,Panel,PanelURL,
-    LibraryField,LibraryURL,
-    Hook,HookURL,
-    Link_LibraryOwns,Link_GClassOwns,Link_HookOwns,
-    Link_ResolvedTypes,Link_FunctionArgTypeResolve,
-    Link_FunctionRetTypeResolve,Link_StructMemberResolve,
-    Link_Category,Link_HaxeTypeCategory,PreviousURLSSeen
-)
+typedef Extra_ReturnInfo = {
+    var retID(default,never):Id<FunctionRet>;
+    var assignedName(default,never):VarChar<255>;
+}
+
+@:tables(DescItem
+    ,DescriptionStorage
+    ,Function
+    ,FunctionArg
+    ,FunctionRet
+    ,LuaExample
+    ,Struct
+    ,StructMember
+    ,GClass
+    ,Library
+    ,GEnum
+    ,GEnumMembers
+    ,GClassURL
+    ,Panel
+    ,PanelURL
+    ,LibraryField
+    ,LibraryURL
+    ,Hook
+    ,HookURL
+    ,Link_LibraryOwns
+    ,Link_GClassOwns
+    ,Link_HookOwns
+    ,Link_ResolvedTypes
+    ,Link_FunctionArgTypeResolve
+    ,Link_FunctionRetTypeResolve
+    ,Link_StructMemberResolve
+    ,Link_Category
+    ,Link_HaxeTypeCategory
+    ,PreviousURLSSeen
+    ,Extra_ReturnInfo)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 typedef WikiDB = tink.sql.Database<WikiDBDef>;
 

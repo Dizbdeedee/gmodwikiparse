@@ -16,7 +16,7 @@ import typelink.HaxeTypeCategories;
 
     }
 
-    @:async public static function addLuaTypes(dbConnection:data.WikiDB):Noise {
+    public static function addLuaTypes(dbConnection:data.WikiDB):Promise<Noise> {
         var processSQLProm = new PromiseArray();
         var readDir = Fs.readdirSync(LOCATION_LUATYPES);
         for (sqlFilename in readDir) {
@@ -24,7 +24,7 @@ import typelink.HaxeTypeCategories;
             var sql = sqlBuf.toString();
             processSQLProm.add(dbConnection.__pool.executeSql(sql));
         }
-        return @:await processSQLProm.inSequence().noise();
+        return processSQLProm.inSequence().noise();
     }
 
     public static function addGClasses(dbConnection:data.WikiDB):Promise<Noise> {
@@ -58,11 +58,21 @@ import typelink.HaxeTypeCategories;
     }
 
     static function getFunctionIDLibraryIDLink(dbConnection:data.WikiDB,libURL:data.WikiDB.LibraryURL):Future<Option<FunctionIDLibraryIDLink>> {
-        return dbConnection.Function.select({
-            functionID: Function.id
-        }).where(Function.url == libURL.url)
-        .first().next(res -> Some({functionID: res.functionID, libraryID: libURL.libraryID}))
-        .recover(_ -> {trace('$libURL not found'); None;});
+        var functionNext = (result) -> {
+            return Some({functionID: result.functionID, libraryID: libURL.libraryID});
+        }
+        var functionRecover = (_) -> {
+            trace('$libURL not found');
+            return None;
+        }
+        return dbConnection.Function
+            .select({
+                functionID: Function.id
+            })
+            .where(Function.url == libURL.url)
+            .first()
+            .next(functionNext)
+            .recover(functionRecover);
     }
 
     @:async
@@ -90,17 +100,17 @@ import typelink.HaxeTypeCategories;
             }
         }
         return @:await librariesInsertedProm
-        .inSequence()
-        .noise();
+            .inSequence()
+            .noise();
     }
 
     static function getFunctionIDGClassIDLink(dbConnection:data.WikiDB,gclassURL:data.WikiDB.GClassURL):Future<Option<FunctionIDGClassIDLink>> {
         var nextFunction = (res) -> {
-            Some({functionID: res.functionID, gclassID: gclassURL.gclassID));
-        }
+            return Some({functionID: res.functionID, gclassID: gclassURL.gclassID});
+        };
         var recoverFunction = (_) -> {
             trace('$gclassURL not found!!');
-            None;
+            return None;
         }
         return dbConnection.Function
         .select({
@@ -186,8 +196,9 @@ import typelink.HaxeTypeCategories;
         return @:await pa_insertFunctionRets.inSequence();
     }
 
-    static function linkFunctionArgToType(funcArg:data.WikiDB.FunctionArg,dbConnection:data.WikiDB):Future<haxe.ds.Option<ItemAndType>> {
-        var nextResolvedType = (result) -> {
+    static function linkFunctionArgToType(funcArg:data.WikiDB.FunctionArg,dbConnection:data.WikiDB):Future<Option<ItemAndType>> {
+        var nextResolvedType:(result:data.WikiDB.Link_ResolvedTypes) -> Option<ItemAndType>;
+        nextResolvedType = (result) -> {
             return Some({typeID: result.typeID, itemID: funcArg.id});
         }
         var recoverResolvedType = (err) -> {
@@ -200,9 +211,10 @@ import typelink.HaxeTypeCategories;
             .recover(recoverResolvedType);
     }
 
-    static function linkFunctionRetToType(funcRet:data.WikiDB.FunctionRet,dbConnection:data.WikiDB):Future<haxe.ds.Option<ItemAndType>> {
-        var nextResolvedType = (result) -> {
-            return Some({typeID: result.typeID, itemID, funcArg.id});
+    static function linkFunctionRetToType(funcRet:data.WikiDB.FunctionRet,dbConnection:data.WikiDB):Future<Option<ItemAndType>> {
+        var nextResolvedType:(result:data.WikiDB.Link_ResolvedTypes) -> Option<ItemAndType>;
+        nextResolvedType = (result) -> {
+            return Some({typeID: result.typeID, itemID: funcRet.id});
         }
         var recoverResolvedType = (err) -> {
             trace('Unmatched funcRet: ${funcRet.typeURL}');
