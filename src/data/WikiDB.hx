@@ -299,8 +299,13 @@ typedef Link_StructMemberResolve = {
 	var typeID(default, never):Id<Link_ResolvedTypes>;
 }
 
+typedef Link_HaxeMultireturns = {
+	var funcID(default, never):Id<Function>;
+	var generatedContent:VarChar<10000>;
+}
+
 typedef Extra_ReturnInfo = {
-	var retID(default, never):Id<FunctionRet>;
+	var funcRetID(default, never):Id<FunctionRet>;
 	var assignedName(default, never):VarChar<255>;
 }
 
@@ -308,7 +313,7 @@ typedef Extra_ReturnInfo = {
 	GClass, Library, GEnum, GEnumMembers, GClassURL, Panel, PanelURL, LibraryField, LibraryURL, Hook,
 	HookURL, Link_LibraryOwns, Link_GClassOwns, Link_HookOwns, Link_ResolvedTypes,
 	Link_FunctionArgTypeResolve, Link_FunctionRetTypeResolve, Link_StructMemberResolve, Link_Category,
-	Link_HaxeTypeCategory, PreviousURLSSeen, Extra_ReturnInfo)
+	Link_HaxeTypeCategory, PreviousURLSSeen, Extra_ReturnInfo, Link_HaxeMultireturns)
 interface WikiDBDef extends tink.sql.DatabaseDefinition {}
 
 typedef WikiDB = tink.sql.Database<WikiDBDef>;

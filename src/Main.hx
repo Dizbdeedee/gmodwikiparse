@@ -95,23 +95,23 @@ class Main {
 		var generation = new Generation(templates);
 		var performOps:PromiseArray<Noise> = new PromiseArray();
 		performOps.add(dropLinkageTables(dbConnection));
-		performOps.add(TypeLinker.addLuaTypes(dbConnection)
-			.noise());
-		performOps.add(TypeLinker.addGClasses(dbConnection)
-			.noise());
-		performOps.add(TypeLinker.addPanels(dbConnection)
-			.noise());
-		performOps.add(generation.readTypeCategories(dbConnection)
-			.noise());
-		performOps.add(generation.writeGClasses(dbConnection)
-			.noise());
+		performOps.add(TypeLinker.addLuaTypes(dbConnection));
+		performOps.add(TypeLinker.addGClasses(dbConnection));
+		performOps.add(TypeLinker.addPanels(dbConnection));
+		performOps.add(TypeLinker.typeFunctionArgs(dbConnection));
+		performOps.add(TypeLinker.typeFunctionRets(dbConnection));
+		performOps.add(generation.readTypeCategories(dbConnection));
+		performOps.add(generation.writeGClasses(dbConnection));
+		performOps.add(TypeLinker.resolveLibraryOwns(dbConnection));
+		performOps.add(TypeLinker.resolveGClassOwns(dbConnection));
 		var p_operations = performOps.inSequence();
 		p_operations.handle((results) -> {
+			CommitArea.endOfRun();
 			switch (results) {
 				case Success(_):
 					trace("linkMain/ all link ops performed successfully");
 				case Failure(err):
-					trace(err);
+					trace('linkMain/ ${err.toString()}');
 			}
 		});
 	}

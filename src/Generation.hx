@@ -13,6 +13,7 @@ import StringBuf;
 	static final LOCATION_LOCATIONS = "locations";
 	static final LOCATION_TRANSFORMATIONS = "transformations";
 	static final LOCATION_HAXETYPECATEGORIES = "haxetypecategories";
+	static final LOCATION_EXTRARETURNINFO = "extras";
 
 	static final HEAD_PREFIX = "gmod_";
 	static final HEAD_CLIENT = '#if ${HEAD_PREFIX}client';
@@ -25,16 +26,36 @@ import StringBuf;
 		templates = _templates;
 	}
 
-	public function readTypeCategories(dbConnection:data.WikiDB) {
+	@:async public function readTypeCategories(dbConnection:data.WikiDB):Noise {
 		var processSQLProm = new PromiseArray();
 		var readDir = Fs.readdirSync(LOCATION_HAXETYPECATEGORIES);
 		for (sqlFileName in readDir) {
 			var sqlBuf = Fs.readFileSync(Path.join([LOCATION_HAXETYPECATEGORIES, sqlFileName]));
 			var sql = sqlBuf.toString();
+			$type(dbConnection.__pool.executeSql);
 			processSQLProm.add(dbConnection.__pool.executeSql(sql));
 		}
-		return @:await processSQLProm.inSequence()
+		var awaitResult = @:await processSQLProm.inSequence()
 			.noise();
+		return Noise;
+	}
+
+	@:async public function readExtraReturnInfo(dbConnection:data.WikiDB):Array<Noise> {
+		var pa_processSQLS = new PromiseArray();
+		var readDir = Fs.readdirSync(LOCATION_EXTRARETURNINFO);
+		pa_processSQLS.add(dbConnection.__pool.executeSql("PRAGMA temp_store = 2"));
+		pa_processSQLS.add(dbConnection.__pool.executeSql("DROP TABLE IF EXISTS VARS;CREATE TEMP TABLE VARS(Name Text PRIMARY KEY, Val INTEGER);"));
+		for (sqlFileName in readDir) {
+			var sqlBuf = Fs.readFileSync(Path.join([LOCATION_EXTRARETURNINFO, sqlFileName]));
+			var sql = sqlBuf.toString();
+			pa_processSQLS.add(dbConnection.__pool.executeSql(sql)
+				.recover((e) -> {
+					trace('readExtraReturnInfo/ Could not process $sqlFileName. Extra info maybe below');
+					trace(e);
+					return Noise;
+				}));
+		}
+		return @:await pa_processSQLS.inSequence();
 	}
 
 	@:async public function writeGClasses(dbConnection:data.WikiDB) {
@@ -58,20 +79,33 @@ import StringBuf;
 	}
 
 	@:async function processGClass(dbConnection:data.WikiDB, gclass:data.WikiDB.GClass) {
-		var allFunctionsProm = new PromiseArray();
-		var generatedFunctionsProm = new PromiseArray();
-		trace(gclass);
+		var allFunctionsProm:PromiseArray<data.WikiDB.Function> = new PromiseArray();
+		var generatedFunctionsProm:PromiseArray<Noise> = new PromiseArray();
+		trace(gclass); // ncp
 		var linksArr = @:await dbConnection.Link_GClassOwns.where(Link_GClassOwns.gclassID == gclass.id)
 			.all();
+		if (linksArr.length == 0) {
+			trace('processGClass/Missing link_gclassowns');
+			return Noise;
+		}
 		for (link in linksArr) {
 			allFunctionsProm.add(dbConnection.Function.where(Function.id == link.funcID)
 				.first());
 		}
 		var allFunctionsArr = @:await allFunctionsProm.inSequence();
+		if (allFunctionsArr.length == 0) {
+			trace('processGClass/Missing functions');
+			return Noise;
+		}
 		for (func in allFunctionsArr) {
-			generatedFunctionsProm.add(generateFunction(dbConnection, func));
+			if (func != null) {
+				generatedFunctionsProm.add(generateFunction(dbConnection, func).asPromise());
+			} else {
+				trace("null func");
+			}
 		}
 		var results = @:await generatedFunctionsProm.inSequence();
+		trace(results);
 		return Noise;
 	}
 
@@ -89,67 +123,112 @@ import StringBuf;
 			generatedFunctionsProm.add(generateFunction(dbConnection, func));
 		}
 		var results = @:await generatedFunctionsProm.inSequence();
+		trace(results);
 		return Noise;
 	}
 
-	@:async function generateFunction(dbConnection:data.WikiDB, func:data.WikiDB.Function):Noise {
-		var allFuncArgsProm = new PromiseArray();
-		var allFuncRetsProm = new PromiseArray();
+	@:async function generateMultireturn(dbConnection:data.WikiDB, func:data.WikiDB.Function):Noise {
+		trace('generating multireturn for $func');
+		return Noise;
+		// *if (mrs > 1) {
+		//	var funcID = func.id
+		//	dbConnection.Extra_ReturnInfo.where(
+		//	*need to check if extra return info is filled out
+		//	*link link multireturn to function id
+		//	*insert(link multireturn) to database
+		// }
+	}
+
+	@:async function generateFunction(dbConnection:data.WikiDB,
+			func:data.WikiDB.Function):PreGeneratedFunction {
+		trace('generating function $func');
+		var pa_pregenFuncArgs:PromiseArray<Option<PreGeneratedFuncArg>> = new PromiseArray();
+		var pa_preGenFuncRets:PromiseArray<Option<String>> = new PromiseArray();
 		var funcArgs = @:await dbConnection.FunctionArg.where(FunctionArg.funcid == func.id)
 			.all();
 		var funcRets = @:await dbConnection.FunctionRet.where(FunctionRet.funcid == func.id)
 			.all();
 		for (funcArg in funcArgs) {
-			allFuncArgsProm.add(preGenerateFuncArg(dbConnection, funcArg));
+			pa_pregenFuncArgs.add(preGenerateFuncArg(dbConnection, funcArg));
 		}
 		for (funcRet in funcRets) {
-			allFuncRetsProm.add(preGenerateFuncRet(dbConnection, funcRet));
+			pa_preGenFuncRets.add(preGenerateFuncRet(dbConnection, funcRet));
 		}
-		var preGenFuncArgsArr = @:await allFuncArgsProm.inSequence();
+		var preGenFuncArgsArr = @:await pa_pregenFuncArgs.inSequence();
 		var lenFuncArgs = preGenFuncArgsArr.length;
 		var varListBuilder = new StringBuf();
 		for (i in 0...lenFuncArgs) {
-			var partialStr = if (i == lenFuncArgs - 1) {
-				templates.funcArgEndTemplate.execute(preGenFuncArgsArr[i]);
-			} else {
-				templates.funcArgTemplate.execute(preGenFuncArgsArr[i]);
+			switch (preGenFuncArgsArr[i]) {
+				case None:
+					trace('generateFunction/ preGenFuncs $i skipped');
+					continue;
+				case Some(itemandtype):
+					var partialStr = if (i == lenFuncArgs - 1) {
+						templates.funcArgEndTemplate.execute(itemandtype);
+					} else {
+						templates.funcArgTemplate.execute(itemandtype);
+					}
+					varListBuilder.add(partialStr);
 			}
-			varListBuilder.add(partialStr);
 		}
 		var varList = varListBuilder.toString();
-		var preGenFuncRetsArr = @:await allFuncRetsProm.inSequence();
-		trace(varList);
-		return Noise;
+		var preGenFuncRets = @:await pa_preGenFuncRets.inSequence();
+		var lenPreGenFuncRets = preGenFuncRets.length;
+		var typeOutput:String = if (lenPreGenFuncRets > 1) {
+			for (i in 0...lenPreGenFuncRets) {}
+			"GenerateAMultiReturn";
+		} else if (lenPreGenFuncRets == 1) {
+			switch (preGenFuncRets[0]) {
+				case Some(typstr):
+					typstr;
+				default:
+					trace("generateFunction/ret/ ERROR");
+					"ERROR";
+			}
+		} else {
+			"Void";
+		}
+		return {varList: varList, typeOutput: typeOutput, multireturns: []};
 	}
 
 	@:async function preGenerateFuncArg(dbConnection:data.WikiDB,
-			funcArg:data.WikiDB.FunctionArg):PreGeneratedFuncArg {
-		var typeLink = @:await dbConnection.Link_FunctionArgTypeResolve.where
-			(Link_FunctionArgTypeResolve.funcArgNo == funcArg.id)
-			.first();
-		var type = @:await dbConnection.Link_ResolvedTypes.where
-			(Link_ResolvedTypes.typeID == typeLink.typeID)
-			.first();
+			funcArg:data.WikiDB.FunctionArg):Option<PreGeneratedFuncArg> {
+		var typeLink:data.WikiDB.Link_FunctionArgTypeResolve;
+		var type:data.WikiDB.Link_ResolvedTypes;
+		try {
+			typeLink = @:await dbConnection.Link_FunctionArgTypeResolve.where
+				(Link_FunctionArgTypeResolve.funcArgNo == funcArg.id)
+				.first();
+			type = @:await dbConnection.Link_ResolvedTypes.where
+				(Link_ResolvedTypes.typeID == typeLink.typeID)
+				.first();
+		} catch (e) {
+			return None;
+		}
 		var typeNameCanoc = @:await processTypeName(dbConnection, type.name, type.typeCategory);
-		// var result = funcArgTemplate.execute({
-		//     varName: funcArg.name,
-		//     type: typeNameCanoc
-		// });
-		return {
+		return Some({
 			varName: funcArg.name,
 			type: typeNameCanoc
-		};
+		});
 	}
 
-	@:async function preGenerateFuncRet(dbConnection:data.WikiDB, funcRet:data.WikiDB.FunctionRet):Noise {
-		var typeLink = @:await dbConnection.Link_FunctionRetTypeResolve.where
-			(Link_FunctionRetTypeResolve.funcRetID == funcRet.id)
-			.first();
-		var type = @:await dbConnection.Link_ResolvedTypes.where
-			(Link_ResolvedTypes.typeID == typeLink.typeID)
-			.first();
+	@:async function preGenerateFuncRet(dbConnection:data.WikiDB,
+			funcRet:data.WikiDB.FunctionRet):Option<String> {
+		var typeLink:data.WikiDB.Link_FunctionRetTypeResolve;
+		var type:data.WikiDB.Link_ResolvedTypes;
+		try {
+			typeLink = @:await dbConnection.Link_FunctionRetTypeResolve.where
+				(Link_FunctionRetTypeResolve.funcRetID == funcRet.id)
+				.first();
+			type = @:await dbConnection.Link_ResolvedTypes.where
+				(Link_ResolvedTypes.typeID == typeLink.typeID)
+				.first();
+		} catch (e) {
+			trace('preGenerateFuncRet/ Can"t lookup type properly for $funcRet');
+			return None;
+		}
 		var typeNameCanoc = @:await processTypeName(dbConnection, type.name, type.typeCategory);
-		return Noise;
+		return Some(typeNameCanoc);
 	}
 
 	@:async function processTypeName(dbConnection:data.WikiDB, typeName:String, typeCat:Int):String {
@@ -223,6 +302,12 @@ typedef PreGeneratedGClassFunction = {
 	varList:String,
 	typeOutput:String,
 	endHeader:String,
+}
+
+typedef PreGeneratedFunction = {
+	varList:String,
+	typeOutput:String,
+	multireturns:Array<String>
 }
 
 typedef PreGeneratedLibraryFunction = {

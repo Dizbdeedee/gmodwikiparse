@@ -11,13 +11,10 @@ class FutureArray_Use {
 }
 
 class PromiseArray_Use {
-	// static var promiseType_;
-	// static var futureType_;
 	public static macro function add(promiseArr:ExprOf<Util.PromiseArray>, funcCall:Expr) {
 		var typ = Context.typeof(funcCall);
 		var promiseType = Context.getType("tink.core.Promise");
 		var futureType = Context.getType("tink.core.Future");
-		trace(funcCall);
 		return switch (typ) {
 			case Context.unify(promiseType, _) => true:
 				macro @:pos(Context.currentPos()) $promiseArr._add(Promise.lazy(() -> return $funcCall));

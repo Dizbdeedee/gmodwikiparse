@@ -53,6 +53,14 @@ import typelink.HaxeTypeCategories;
 			});
 	}
 
+	@:async
+	static function insertLibraryOwns(dbConnection:data.WikiDB, link:FunctionIDLibraryIDLink) {
+		return @:await dbConnection.Link_LibraryOwns.insertOne({
+			libraryID: link.libraryID,
+			funcID: link.functionID
+		});
+	}
+
 	static function getFunctionIDLibraryIDLink(dbConnection:data.WikiDB,
 			libURL:data.WikiDB.LibraryURL):Future<Option<FunctionIDLibraryIDLink>> {
 		var functionNext = (result) -> {
@@ -71,15 +79,7 @@ import typelink.HaxeTypeCategories;
 			.recover(functionRecover);
 	}
 
-	@:async
-	static function insertLibraryOwns(dbConnection:data.WikiDB, link:FunctionIDLibraryIDLink) {
-		return @:await dbConnection.Link_LibraryOwns.insertOne({
-			libraryID: link.libraryID,
-			funcID: link.functionID
-		});
-	}
-
-	@:async public static function resolveLibraryOwns(dbConnection:data.WikiDB) {
+	@:async public static function resolveLibraryOwns(dbConnection:data.WikiDB):Noise {
 		var functionIDLibraryIDLinkFut = new FutureArray();
 		var librariesInsertedProm = new PromiseArray();
 
@@ -95,8 +95,9 @@ import typelink.HaxeTypeCategories;
 				default:
 			}
 		}
-		return @:await librariesInsertedProm.inSequence()
+		var librariesInserted = @:await librariesInsertedProm.inSequence()
 			.noise();
+		return Promise.NOISE;
 	}
 
 	static function getFunctionIDGClassIDLink(dbConnection:data.WikiDB,
@@ -129,7 +130,7 @@ import typelink.HaxeTypeCategories;
 		});
 	}
 
-	@:async public static function resolveGClassOwns(dbConnection:data.WikiDB) {
+	@:async public static function resolveGClassOwns(dbConnection:data.WikiDB):Noise {
 		var functionIDGClassIDLinkFut = new FutureArray();
 		var gclassInsertedProm = new PromiseArray();
 
@@ -145,49 +146,76 @@ import typelink.HaxeTypeCategories;
 				default:
 			}
 		}
-		return @:await gclassInsertedProm.inSequence()
-			.noise();
+		var gClassInserted = @:await gclassInsertedProm.inSequence();
+		return Promise.NOISE;
 	}
 
-	@:async public static function typeFunctionArgs(dbConnection:data.WikiDB) {
-		var linkedFunctionArgsFut:FutureArray<Option<ItemAndType>> = new FutureArray();
-		var addLinkProm = new PromiseArray();
+	static function insertHookOwns(dbConnection:data.WikiDB, link:FunctionIDHookIDLink) {
+		return null;
+	}
+
+	static function getFunctionIDHookIDLink(dbConnection:data.WikiDB,
+			hookURL:data.WikiDB.HookURL):Future<Option<FunctionIDHookIDLink>> {
+		return null;
+	}
+
+	@:async public static function resolveHookOwns(dbConnection:data.WikiDB):Noise {
+		var processResultsHookURLLinkage = new FutureArray();
+		var processHooksInserted = new PromiseArray();
+
+		var hookURLS = @:await dbConnection.HookURL.all();
+		for (hookURL in hookURLS) {
+			processResultsHookURLLinkage.add(getFunctionIDHookIDLink(dbConnection, hookURL));
+		}
+		var resultsHookURLLinkage = @:await processResultsHookURLLinkage.inSequence();
+		for (hookUrlLinkage in resultsHookURLLinkage) {
+			switch (hookUrlLinkage) {
+				case Some(link):
+					processHooksInserted.add(insertHookOwns(dbConnection, link));
+				default:
+			}
+		}
+		var resultsHooksInserted = @:await processHooksInserted.inSequence();
+		return Promise.NOISE;
+	}
+
+	@:async public static function typeFunctionArgs(dbConnection:data.WikiDB):Noise {
+		var pa_linkFunctionArgs:FutureArray<Option<ItemAndType>> = new FutureArray();
 
 		var allFunctionArgs = @:await dbConnection.FunctionArg.all();
 		for (functionArg in allFunctionArgs) {
-			linkedFunctionArgsFut.add(linkFunctionArgToType(functionArg, dbConnection));
+			pa_linkFunctionArgs.add(linkFunctionArgToType(functionArg, dbConnection));
 		}
-		var linkedFunctionArgs = @:await linkedFunctionArgsFut.inSequence();
+		var linkedFunctionArgs = @:await pa_linkFunctionArgs.inSequence();
+		var manyFuncArgType:Array<data.WikiDB.Link_FunctionArgTypeResolve> = [];
 		for (itemAndTypeRes in linkedFunctionArgs) {
 			switch (itemAndTypeRes) {
 				case Some({typeID: typeID, itemID: funcArgID}):
-					addLinkProm.add(dbConnection.Link_FunctionArgTypeResolve.insertOne
-						({funcArgNo: funcArgID, typeID: typeID}));
+					manyFuncArgType.push({funcArgNo: funcArgID, typeID: typeID});
 				default:
 			}
 		}
-		return addLinkProm.inSequence()
+		return @:await dbConnection.Link_FunctionArgTypeResolve.insertMany(manyFuncArgType)
 			.noise();
 	}
 
-	@:async public static function typeFunctionRets(dbConnection:data.WikiDB) {
-		var linkedFunctionRetsFut:FutureArray<Option<ItemAndType>> = new FutureArray();
-		var pa_insertFunctionRets = new PromiseArray();
-
+	@:async public static function typeFunctionRets(dbConnection:data.WikiDB):Noise {
+		var pa_linkFunctionRets:FutureArray<Option<ItemAndType>> = new FutureArray();
 		var allFunctionRets = @:await dbConnection.FunctionRet.all();
 		for (functionRet in allFunctionRets) {
-			linkedFunctionRetsFut.add(linkFunctionRetToType(functionRet, dbConnection));
+			pa_linkFunctionRets.add(linkFunctionRetToType(functionRet, dbConnection));
 		}
-		var linkedFunctionRetsArr = @:await linkedFunctionRetsFut.inSequence();
+		var linkedFunctionRetsArr = @:await pa_linkFunctionRets.inSequence();
+		var manyFunctionRetType:Array<data.WikiDB.Link_FunctionRetTypeResolve> = [];
 		for (linkedFunctionRet in linkedFunctionRetsArr) {
 			switch (linkedFunctionRet) {
 				case Some({typeID: typeID, itemID: funcRetID}):
-					pa_insertFunctionRets.add(dbConnection.Link_FunctionRetTypeResolve.insertOne
-						({funcRetID: funcRetID, typeID: typeID}));
+					manyFunctionRetType.push({funcRetID: funcRetID, typeID: typeID});
 				default:
 			}
 		}
-		return @:await pa_insertFunctionRets.inSequence();
+		return @:await dbConnection.Link_FunctionRetTypeResolve.insertMany(manyFunctionRetType)
+			.noise();
 	}
 
 	static function linkFunctionArgToType(funcArg:data.WikiDB.FunctionArg,
@@ -197,6 +225,7 @@ import typelink.HaxeTypeCategories;
 			return Some({typeID: result.typeID, itemID: funcArg.id});
 		}
 		var recoverResolvedType = (err) -> {
+			trace('Unmatched funcArg: ${funcArg.typeURL}');
 			return None;
 		}
 		return dbConnection.Link_ResolvedTypes.where(funcArg.typeURL == Link_ResolvedTypes.url)
@@ -223,6 +252,11 @@ import typelink.HaxeTypeCategories;
 }
 
 typedef ItemAndType = {
+	itemID:Int,
+	typeID:Int
+}
+
+typedef FunctionIDHookIDLink = {
 	itemID:Int,
 	typeID:Int
 }

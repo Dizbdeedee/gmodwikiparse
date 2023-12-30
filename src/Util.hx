@@ -34,7 +34,7 @@ abstract PromiseArray<T>(Array<Promise<T>>) {
 	}
 
 	@:noCompletion
-	public inline function _add(x:Dynamic) {
+	public inline function _add(x:Promise<Dynamic>) {
 		return this.push(x);
 	}
 
