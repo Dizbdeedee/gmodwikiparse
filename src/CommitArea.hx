@@ -1,4 +1,3 @@
-// COMMITAREA - add commitarea. ^^
 #if macro
 import haxe.macro.Type.ClassField;
 import haxe.macro.Expr;

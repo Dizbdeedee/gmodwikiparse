@@ -1,5 +1,7 @@
 package;
 
+import tink.sql.Expr;
+
 using tink.CoreApi;
 
 import Util.PromiseArray;
@@ -8,12 +10,14 @@ import haxe.Template;
 import haxe.io.Path;
 import typelink.HaxeTypeCategories;
 import StringBuf;
+import Assert.assert;
 
 @:await class Generation {
 	static final LOCATION_LOCATIONS = "locations";
 	static final LOCATION_TRANSFORMATIONS = "transformations";
 	static final LOCATION_HAXETYPECATEGORIES = "haxetypecategories";
 	static final LOCATION_EXTRARETURNINFO = "extras";
+	static final LOCATION_OUT = "out";
 
 	static final HEAD_PREFIX = "gmod_";
 	static final HEAD_CLIENT = '#if ${HEAD_PREFIX}client';
@@ -32,7 +36,6 @@ import StringBuf;
 		for (sqlFileName in readDir) {
 			var sqlBuf = Fs.readFileSync(Path.join([LOCATION_HAXETYPECATEGORIES, sqlFileName]));
 			var sql = sqlBuf.toString();
-			$type(dbConnection.__pool.executeSql);
 			processSQLProm.add(dbConnection.__pool.executeSql(sql));
 		}
 		var awaitResult = @:await processSQLProm.inSequence()
@@ -80,8 +83,7 @@ import StringBuf;
 
 	@:async function processGClass(dbConnection:data.WikiDB, gclass:data.WikiDB.GClass) {
 		var allFunctionsProm:PromiseArray<data.WikiDB.Function> = new PromiseArray();
-		var generatedFunctionsProm:PromiseArray<Noise> = new PromiseArray();
-		trace(gclass); // ncp
+		var generatedFunctionsProm:PromiseArray<PreGeneratedFunction> = new PromiseArray();
 		var linksArr = @:await dbConnection.Link_GClassOwns.where(Link_GClassOwns.gclassID == gclass.id)
 			.all();
 		if (linksArr.length == 0) {
@@ -99,13 +101,45 @@ import StringBuf;
 		}
 		for (func in allFunctionsArr) {
 			if (func != null) {
-				generatedFunctionsProm.add(generateFunction(dbConnection, func).asPromise());
+				generatedFunctionsProm.add(generateFunction(dbConnection, func));
 			} else {
 				trace("null func");
 			}
 		}
-		var results = @:await generatedFunctionsProm.inSequence();
-		trace(results);
+		var manyPregenFuncs = @:await generatedFunctionsProm.inSequence();
+		for (pregenFunc in manyPregenFuncs) {
+			var f = pregenFunc.func;
+			var beginHeader = switch [f.stateClient, f.stateMenu, f.stateServer] {
+				case [false, false, false]:
+					trace("processGClass// NO STATE");
+					throw new haxe.Exception("processGClass// NO STATE");
+				case [true, false, false]:
+					"#if gmclient";
+				case [false, false, true]:
+					"#if gmserver";
+				case [true, false, true]:
+					"#if gmgame";
+				case [true, true, false]:
+					"#if (gmclient || gmmenu)";
+				case [true, true, true]:
+					"#if gm";
+				default:
+					trace("processGClass// UNMATCHED STATE");
+					throw new haxe.Exception("processGClass// UNMATCHED STATE");
+			}
+			var endHeader = "#end";
+			var templateData = {
+				beginHeader: beginHeader,
+				comment: "//ye",
+				isPrivate: "",
+				funcName: f.name,
+				endHeader: endHeader,
+				varList: pregenFunc.varList,
+				typeOutput: pregenFunc.typeOutput
+			};
+			var str = templates.gclassFunctionTemplate.execute(templateData);
+			trace(str);
+		}
 		return Noise;
 	}
 
@@ -114,6 +148,7 @@ import StringBuf;
 		var generatedFunctionsProm = new PromiseArray();
 		var linksArr = @:await dbConnection.Link_LibraryOwns.where(Link_LibraryOwns.libraryID == library.id)
 			.all();
+		assert(linksArr.length > 0);
 		for (link in linksArr) {
 			allFunctionsProm.add(dbConnection.Function.where(Function.id == link.funcID)
 				.first());
@@ -123,25 +158,41 @@ import StringBuf;
 			generatedFunctionsProm.add(generateFunction(dbConnection, func));
 		}
 		var results = @:await generatedFunctionsProm.inSequence();
-		trace(results);
 		return Noise;
 	}
 
-	@:async function generateMultireturn(dbConnection:data.WikiDB, func:data.WikiDB.Function):Noise {
-		trace('generating multireturn for $func');
+	@:async public function generateMultireturns(dbConnection:data.WikiDB):Noise {
+		var funcsWithMultipleRets = @:await dbConnection.FunctionRet.join(dbConnection.Function)
+			.on(FunctionRet.funcid == Function.id)
+			.select({
+				cnt: Functions.count(FunctionRet.funcid),
+				funcid: FunctionRet.funcid
+			})
+			.groupBy((fields) -> return [fields.FunctionRet.funcid])
+			.having((funcRet, func) -> return Functions.count(funcRet.funcid) > 1)
+			.all();
+		assert(funcsWithMultipleRets.length > 0);
+		// could complicate this a little - but no need. Just keep it simple
+		var pa_manyGroupedFuncRets:PromiseArray<Array<data.WikiDB.FunctionRet>> = new PromiseArray();
+		for (func in funcsWithMultipleRets) {
+			var p_manyGroupedFuncRets = () -> {((dbConnection.FunctionRet.where
+				(FunctionRet.funcid == func.funcid)
+				.all()) && (dbConnection.Function.where(Function.id == func.funcid)
+					.first())).next((pairResult) -> {
+					rets: pairResult.a,
+					func: pairResult.b
+				});
+			};
+			pa_manyGroupedFuncRets.add(p_manyGroupedFuncRets);
+		}
+		var manyGroupedFuncRets = @:await pa_manyGroupedFuncRets.inSequence();
+		assert(manyGroupedFuncRets.length > 0);
+		for (groupedRetsAndFunc in manyGroupedFuncRets) {}
 		return Noise;
-		// *if (mrs > 1) {
-		//	var funcID = func.id
-		//	dbConnection.Extra_ReturnInfo.where(
-		//	*need to check if extra return info is filled out
-		//	*link link multireturn to function id
-		//	*insert(link multireturn) to database
-		// }
 	}
 
 	@:async function generateFunction(dbConnection:data.WikiDB,
 			func:data.WikiDB.Function):PreGeneratedFunction {
-		trace('generating function $func');
 		var pa_pregenFuncArgs:PromiseArray<Option<PreGeneratedFuncArg>> = new PromiseArray();
 		var pa_preGenFuncRets:PromiseArray<Option<String>> = new PromiseArray();
 		var funcArgs = @:await dbConnection.FunctionArg.where(FunctionArg.funcid == func.id)
@@ -160,7 +211,6 @@ import StringBuf;
 		for (i in 0...lenFuncArgs) {
 			switch (preGenFuncArgsArr[i]) {
 				case None:
-					trace('generateFunction/ preGenFuncs $i skipped');
 					continue;
 				case Some(itemandtype):
 					var partialStr = if (i == lenFuncArgs - 1) {
@@ -188,7 +238,7 @@ import StringBuf;
 		} else {
 			"Void";
 		}
-		return {varList: varList, typeOutput: typeOutput, multireturns: []};
+		return {varList: varList, typeOutput: typeOutput, func: func};
 	}
 
 	@:async function preGenerateFuncArg(dbConnection:data.WikiDB,
@@ -307,7 +357,7 @@ typedef PreGeneratedGClassFunction = {
 typedef PreGeneratedFunction = {
 	varList:String,
 	typeOutput:String,
-	multireturns:Array<String>
+	func:data.WikiDB.Function
 }
 
 typedef PreGeneratedLibraryFunction = {

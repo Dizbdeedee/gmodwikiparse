@@ -3,6 +3,9 @@ package;
 import haxe.macro.Expr.ExprOf;
 import haxe.macro.Expr;
 import haxe.macro.Context;
+import haxe.macro.Type;
+
+using tink.MacroApi;
 
 class FutureArray_Use {
 	public static macro function add(futureArr:ExprOf<Util.FutureArray>, funcCall:Expr) {
@@ -15,7 +18,15 @@ class PromiseArray_Use {
 		var typ = Context.typeof(funcCall);
 		var promiseType = Context.getType("tink.core.Promise");
 		var futureType = Context.getType("tink.core.Future");
+		var void = Context.getType("Void");
+		var promiseFunc = TFun([], promiseType);
+		var futureFunc = TFun([], futureType);
+		// TFun([],)
 		return switch (typ) {
+			case Context.unify(promiseFunc, _) => true:
+				macro @:pos(Context.currentPos()) $promiseArr._add($funcCall);
+			case Context.unify(futureFunc, _) => true:
+				macro @:pos(Context.currentPos()) $promiseArr._add($funcCall);
 			case Context.unify(promiseType, _) => true:
 				macro @:pos(Context.currentPos()) $promiseArr._add(Promise.lazy(() -> return $funcCall));
 			case Context.unify(futureType, _) => true:

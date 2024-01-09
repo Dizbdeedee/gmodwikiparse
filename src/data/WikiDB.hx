@@ -301,7 +301,7 @@ typedef Link_StructMemberResolve = {
 
 typedef Link_HaxeMultireturns = {
 	var funcID(default, never):Id<Function>;
-	var generatedContent:VarChar<10000>;
+	var typeLocation(default, never):VarChar<255>;
 }
 
 typedef Extra_ReturnInfo = {

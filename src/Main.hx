@@ -100,10 +100,12 @@ class Main {
 		performOps.add(TypeLinker.addPanels(dbConnection));
 		performOps.add(TypeLinker.typeFunctionArgs(dbConnection));
 		performOps.add(TypeLinker.typeFunctionRets(dbConnection));
-		performOps.add(generation.readTypeCategories(dbConnection));
-		performOps.add(generation.writeGClasses(dbConnection));
 		performOps.add(TypeLinker.resolveLibraryOwns(dbConnection));
 		performOps.add(TypeLinker.resolveGClassOwns(dbConnection));
+		performOps.add(generation.readTypeCategories(dbConnection));
+		performOps.add(generation.readExtraReturnInfo(dbConnection));
+		performOps.add(generation.generateMultireturns(dbConnection));
+		performOps.add(generation.writeGClasses(dbConnection));
 		var p_operations = performOps.inSequence();
 		p_operations.handle((results) -> {
 			CommitArea.endOfRun();
