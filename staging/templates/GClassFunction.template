@@ -1,6 +1,6 @@
 ::beginHeader::
 
 ::comment::
-::isPrivate:: function ::funcName::(::varList::)::typeOutput::;
+::isPrivate::function ::funcName::(::varList::):::typeOutput::;
 
 ::endHeader::

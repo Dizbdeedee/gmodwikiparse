@@ -70,6 +70,7 @@ class Main {
 			dbConnection.Link_HookOwns.create(true),
 			dbConnection.Link_FunctionArgTypeResolve.create(true),
 			dbConnection.Link_FunctionRetTypeResolve.create(true),
+			dbConnection.Extra_ReturnInfo.create(true),
 			dbConnection.Link_Category.create(true),
 			dbConnection.PreviousURLSSeen.create(true) // dbConnection.Link_HaxeTypeCategory.create(true)
 				// dbConnection.Link_ResolvedTypes.create(true)

@@ -7,6 +7,4 @@ extern class ::gclassName:: {
 ::allPartialContent::
 }
 
-::allPartialMultiReturnContent::
-
 ::endHeader::

@@ -17,7 +17,7 @@ class CommitArea {
 		final shouldPrint = shouldPrintStore[ident];
 		if (!shouldPrint) {
 			shouldPrintStore[ident] = true;
-			haxe.Log.trace(str);
+			haxe.Log.trace(str,pos);
 		}
 	}
 
@@ -75,6 +75,7 @@ class CommitArea {
 	#end
 
 	public static macro function COMMITAREA(run:haxe.macro.Expr) {
+		var p = Context.currentPos();
 		var expr = setupbuild('_COMMITAREA$nextPrinter', () -> {
 			return macro class {
 				@:keep
@@ -86,7 +87,7 @@ class CommitArea {
 		});
 		return macro {
 			$expr;
-			@:privateAccess CommitArea._commitArea($v{nextPrinter++}, "COMMITAREA - " + $run);
+			@:privateAccess @:pos(p) CommitArea._commitArea($v{nextPrinter++}, "COMMITAREA - " + $run);
 		}
 	}
 }

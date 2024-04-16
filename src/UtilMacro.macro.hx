@@ -8,6 +8,7 @@ import haxe.macro.Type;
 using tink.MacroApi;
 
 class FutureArray_Use {
+	//TODO add below additions to futurearray
 	public static macro function add(futureArr:ExprOf<Util.FutureArray>, funcCall:Expr) {
 		return macro $futureArr._add(Util.FutureArray.megaLazy(() -> $funcCall));
 	}

@@ -107,6 +107,8 @@ import Assert.assert;
 			}
 		}
 		var manyPregenFuncs = @:await generatedFunctionsProm.inSequence();
+		var tabWidth = 2;
+		var partialContent:StringBuf = new StringBuf();
 		for (pregenFunc in manyPregenFuncs) {
 			var f = pregenFunc.func;
 			var beginHeader = switch [f.stateClient, f.stateMenu, f.stateServer] {
@@ -137,10 +139,44 @@ import Assert.assert;
 				varList: pregenFunc.varList,
 				typeOutput: pregenFunc.typeOutput
 			};
+			if (f.description != null) {
+				// @:await renderText(dbConnection,f.description);
+			}
 			var str = templates.gclassFunctionTemplate.execute(templateData);
-			trace(str);
+			partialContent.add(str);
 		}
+		var allPartialContent = partialContent.toString();
+		var templateData = {
+			allPartialContent: allPartialContent,
+			gclassName: gclass.name,
+			comment: "",
+			beginHeader: "#if gm",
+			endHeader: "#end"
+		}
+		var str = templates.gclassTemplate.execute(templateData);
+		Fs.writeFileSync("wat/" + gclass.name + ".hx",str);
 		return Noise;
+	}
+
+	@:async function renderText(dbConnection:data.WikiDB,descID:Int) {
+		var description:Array<Dynamic> = @:await
+			dbConnection.DescriptionStorage
+			.join(dbConnection.DescItem)
+			.on(DescItem.id == DescriptionStorage.descItem)  //DEFER no dynamic
+			.where((descStorage, descItem) -> descStorage.id == descID)
+			.all();
+		var strBuf = new StringBuf();
+		for (d in description) {
+			var descItemType:data.WikiDB.DescItemType = d.descItem.type;
+			switch (descItemType) {
+				case DESCRIPTION:
+					strBuf.add(d.descItem.textValue);
+				case DESCRIPTION_BREAK_BELOW:
+					strBuf.add("\n");
+				default:
+			}
+		}
+		return strBuf.toString();
 	}
 
 	@:async function processLibrary(dbConnection:data.WikiDB, library:data.WikiDB.Library):Noise {
@@ -161,8 +197,26 @@ import Assert.assert;
 		return Noise;
 	}
 
+	function genPromiseGroupFuncAndRet(dbConnection:data.WikiDB,selectMultipleRetsResult:SelectMultipleRetsResult):Promise<GroupedFuncAndRet> {
+		var functionRets = dbConnection.FunctionRet.where(FunctionRet.funcid == selectMultipleRetsResult.funcid)
+		.all();
+		var functionRetsWithRetInfo = functionRets.next((manyRets) -> {
+			var pa_FunctionRetsWithRetInfo = new PromiseArray();
+			for (ret in manyRets) {
+				pa_FunctionRetsWithRetInfo.add(lookupReturnInfo(dbConnection,ret));
+			}
+			return pa_FunctionRetsWithRetInfo.inSequence();
+		});
+		var functions = dbConnection.Function.where(Function.id == selectMultipleRetsResult.funcid).first();
+		var both = functionRetsWithRetInfo && functions;
+		return both.next((pair) -> {
+			rets: pair.a,
+			func: pair.b
+		});
+	}
+
 	@:async public function generateMultireturns(dbConnection:data.WikiDB):Noise {
-		var funcsWithMultipleRets = @:await dbConnection.FunctionRet.join(dbConnection.Function)
+		var funcsWithMultipleRets:Array<SelectMultipleRetsResult> = @:await dbConnection.FunctionRet.join(dbConnection.Function)
 			.on(FunctionRet.funcid == Function.id)
 			.select({
 				cnt: Functions.count(FunctionRet.funcid),
@@ -173,22 +227,34 @@ import Assert.assert;
 			.all();
 		assert(funcsWithMultipleRets.length > 0);
 		// could complicate this a little - but no need. Just keep it simple
-		var pa_manyGroupedFuncRets:PromiseArray<Array<data.WikiDB.FunctionRet>> = new PromiseArray();
-		for (func in funcsWithMultipleRets) {
-			var p_manyGroupedFuncRets = () -> {((dbConnection.FunctionRet.where
-				(FunctionRet.funcid == func.funcid)
-				.all()) && (dbConnection.Function.where(Function.id == func.funcid)
-					.first())).next((pairResult) -> {
-					rets: pairResult.a,
-					func: pairResult.b
-				});
-			};
-			pa_manyGroupedFuncRets.add(p_manyGroupedFuncRets);
+		var pa_manyGroupedFuncRets:PromiseArray<GroupedFuncAndRet> = new PromiseArray();
+		for (selectMultipleRetsResult in funcsWithMultipleRets) {
+			pa_manyGroupedFuncRets.add(genPromiseGroupFuncAndRet(dbConnection,selectMultipleRetsResult));
 		}
 		var manyGroupedFuncRets = @:await pa_manyGroupedFuncRets.inSequence();
 		assert(manyGroupedFuncRets.length > 0);
-		for (groupedRetsAndFunc in manyGroupedFuncRets) {}
+		for (groupedRetsAndFunc in manyGroupedFuncRets) {
+			for (ret in groupedRetsAndFunc.rets) {
+			}
+		}
+		var partialContent:String;
 		return Noise;
+	}
+
+	@:async function lookupReturnInfo(dbConnection:data.WikiDB,funcRet:data.WikiDB.FunctionRet):RetWithExtraInfo {
+		var retInfo = @:await dbConnection.Extra_ReturnInfo.where(Extra_ReturnInfo.funcRetID == funcRet.id).all();
+		assert(retInfo.length <= 1);
+		return if (retInfo.length == 0) {
+			{
+				name: None,
+				ret: funcRet
+			}
+		} else {
+			{
+				name: Some(retInfo[0].assignedName),
+				ret: funcRet
+			}
+		}
 	}
 
 	@:async function generateFunction(dbConnection:data.WikiDB,
@@ -226,7 +292,7 @@ import Assert.assert;
 		var lenPreGenFuncRets = preGenFuncRets.length;
 		var typeOutput:String = if (lenPreGenFuncRets > 1) {
 			for (i in 0...lenPreGenFuncRets) {}
-			"GenerateAMultiReturn";
+			"GenerateAMultiReturn"; //lookup saved multireturn
 		} else if (lenPreGenFuncRets == 1) {
 			switch (preGenFuncRets[0]) {
 				case Some(typstr):
@@ -371,4 +437,19 @@ typedef PreGeneratedLibraryFunction = {
 typedef PreGeneratedFuncArg = {
 	varName:String,
 	type:String
+}
+
+typedef GroupedFuncAndRet = {
+	rets: Array<RetWithExtraInfo>,
+	func: data.WikiDB.Function
+}
+
+typedef RetWithExtraInfo = {
+	name: Option<String>,
+	ret: data.WikiDB.FunctionRet
+}
+
+typedef SelectMultipleRetsResult = {
+	var cnt(default,never) : Int;
+	var funcid(default,never): Int;
 }
