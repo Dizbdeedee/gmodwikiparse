@@ -154,17 +154,16 @@ import Assert.assert;
 			endHeader: "#end"
 		}
 		var str = templates.gclassTemplate.execute(templateData);
-		Fs.writeFileSync("wat/" + gclass.name + ".hx",str);
+		Fs.writeFileSync("wat/" + gclass.name + ".hx", str);
 		return Noise;
 	}
 
-	@:async function renderText(dbConnection:data.WikiDB,descID:Int) {
+	@:async function renderText(dbConnection:data.WikiDB, descID:Int) {
 		var description:Array<Dynamic> = @:await
-			dbConnection.DescriptionStorage
-			.join(dbConnection.DescItem)
-			.on(DescItem.id == DescriptionStorage.descItem)  //DEFER no dynamic
-			.where((descStorage, descItem) -> descStorage.id == descID)
-			.all();
+			dbConnection.DescriptionStorage.join(dbConnection.DescItem)
+				.on(DescItem.id == DescriptionStorage.descItem) // DEFER no dynamic
+				.where((descStorage, descItem) -> descStorage.id == descID)
+				.all();
 		var strBuf = new StringBuf();
 		for (d in description) {
 			var descItemType:data.WikiDB.DescItemType = d.descItem.type;
@@ -197,17 +196,20 @@ import Assert.assert;
 		return Noise;
 	}
 
-	function genPromiseGroupFuncAndRet(dbConnection:data.WikiDB,selectMultipleRetsResult:SelectMultipleRetsResult):Promise<GroupedFuncAndRet> {
-		var functionRets = dbConnection.FunctionRet.where(FunctionRet.funcid == selectMultipleRetsResult.funcid)
-		.all();
+	function genPromiseGroupFuncAndRet(dbConnection:data.WikiDB,
+			selectMultipleRetsResult:SelectMultipleRetsResult):Promise<GroupedFuncAndRet> {
+		var functionRets = dbConnection.FunctionRet.where
+			(FunctionRet.funcid == selectMultipleRetsResult.funcid)
+			.all();
 		var functionRetsWithRetInfo = functionRets.next((manyRets) -> {
 			var pa_FunctionRetsWithRetInfo = new PromiseArray();
 			for (ret in manyRets) {
-				pa_FunctionRetsWithRetInfo.add(lookupReturnInfo(dbConnection,ret));
+				pa_FunctionRetsWithRetInfo.add(lookupReturnInfo(dbConnection, ret));
 			}
 			return pa_FunctionRetsWithRetInfo.inSequence();
 		});
-		var functions = dbConnection.Function.where(Function.id == selectMultipleRetsResult.funcid).first();
+		var functions = dbConnection.Function.where(Function.id == selectMultipleRetsResult.funcid)
+			.first();
 		var both = functionRetsWithRetInfo && functions;
 		return both.next((pair) -> {
 			rets: pair.a,
@@ -216,7 +218,8 @@ import Assert.assert;
 	}
 
 	@:async public function generateMultireturns(dbConnection:data.WikiDB):Noise {
-		var funcsWithMultipleRets:Array<SelectMultipleRetsResult> = @:await dbConnection.FunctionRet.join(dbConnection.Function)
+		var funcsWithMultipleRets:Array<SelectMultipleRetsResult> = @:await dbConnection.FunctionRet.join
+			(dbConnection.Function)
 			.on(FunctionRet.funcid == Function.id)
 			.select({
 				cnt: Functions.count(FunctionRet.funcid),
@@ -229,20 +232,21 @@ import Assert.assert;
 		// could complicate this a little - but no need. Just keep it simple
 		var pa_manyGroupedFuncRets:PromiseArray<GroupedFuncAndRet> = new PromiseArray();
 		for (selectMultipleRetsResult in funcsWithMultipleRets) {
-			pa_manyGroupedFuncRets.add(genPromiseGroupFuncAndRet(dbConnection,selectMultipleRetsResult));
+			pa_manyGroupedFuncRets.add(genPromiseGroupFuncAndRet(dbConnection, selectMultipleRetsResult));
 		}
 		var manyGroupedFuncRets = @:await pa_manyGroupedFuncRets.inSequence();
 		assert(manyGroupedFuncRets.length > 0);
 		for (groupedRetsAndFunc in manyGroupedFuncRets) {
-			for (ret in groupedRetsAndFunc.rets) {
-			}
+			for (ret in groupedRetsAndFunc.rets) {}
 		}
 		var partialContent:String;
 		return Noise;
 	}
 
-	@:async function lookupReturnInfo(dbConnection:data.WikiDB,funcRet:data.WikiDB.FunctionRet):RetWithExtraInfo {
-		var retInfo = @:await dbConnection.Extra_ReturnInfo.where(Extra_ReturnInfo.funcRetID == funcRet.id).all();
+	@:async function lookupReturnInfo(dbConnection:data.WikiDB,
+			funcRet:data.WikiDB.FunctionRet):RetWithExtraInfo {
+		var retInfo = @:await dbConnection.Extra_ReturnInfo.where(Extra_ReturnInfo.funcRetID == funcRet.id)
+			.all();
 		assert(retInfo.length <= 1);
 		return if (retInfo.length == 0) {
 			{
@@ -292,7 +296,7 @@ import Assert.assert;
 		var lenPreGenFuncRets = preGenFuncRets.length;
 		var typeOutput:String = if (lenPreGenFuncRets > 1) {
 			for (i in 0...lenPreGenFuncRets) {}
-			"GenerateAMultiReturn"; //lookup saved multireturn
+			"GenerateAMultiReturn"; // lookup saved multireturn
 		} else if (lenPreGenFuncRets == 1) {
 			switch (preGenFuncRets[0]) {
 				case Some(typstr):
@@ -440,16 +444,16 @@ typedef PreGeneratedFuncArg = {
 }
 
 typedef GroupedFuncAndRet = {
-	rets: Array<RetWithExtraInfo>,
-	func: data.WikiDB.Function
+	rets:Array<RetWithExtraInfo>,
+	func:data.WikiDB.Function
 }
 
 typedef RetWithExtraInfo = {
-	name: Option<String>,
-	ret: data.WikiDB.FunctionRet
+	name:Option<String>,
+	ret:data.WikiDB.FunctionRet
 }
 
 typedef SelectMultipleRetsResult = {
-	var cnt(default,never) : Int;
-	var funcid(default,never): Int;
+	var cnt(default, never):Int;
+	var funcid(default, never):Int;
 }

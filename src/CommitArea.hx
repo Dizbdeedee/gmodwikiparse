@@ -17,7 +17,7 @@ class CommitArea {
 		final shouldPrint = shouldPrintStore[ident];
 		if (!shouldPrint) {
 			shouldPrintStore[ident] = true;
-			haxe.Log.trace(str,pos);
+			haxe.Log.trace(str, pos);
 		}
 	}
 
